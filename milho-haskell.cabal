@@ -31,17 +31,12 @@ flag incomplete-error
 
 library
   exposed-modules:
-      Canjica
       Canjica.Apply
       Canjica.Eval
       Canjica.VarTable
-      Pipoquinha
-      Pipoquinha.Parser.BuiltIns
-      Pipoquinha.Parser.Helpers
-      Pipoquinha.Parser.Number
+      Pipoquinha.Parser
       Pipoquinha.Types.Atom
       Pipoquinha.Types.Data
-      Pipoquinha.Types.Function
   other-modules:
       Paths_milho_haskell
   hs-source-dirs:

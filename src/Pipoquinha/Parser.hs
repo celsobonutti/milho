@@ -1,4 +1,4 @@
-module Pipoquinha.Parser.Helpers where
+module Pipoquinha.Parser where
 
 import Control.Monad.Fail (fail)
 import Data.Text (Text)

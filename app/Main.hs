@@ -3,7 +3,7 @@ module Main where
 import Prelude (IO)
 import Data.Text (Text)
 import Canjica.Eval
-import Pipoquinha.Parser.Helpers
+import Pipoquinha.Parser
 import Pipoquinha.Types.Atom
 import Text.Megaparsec
 import qualified Data.Map as M
