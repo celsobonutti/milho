@@ -1,0 +1,76 @@
+name: milho-haskell
+version: 0.1.0.0
+github: "celsobonutti/milho-haskell"
+license: BSD3
+author: "Celso Bonutti"
+maintainer: "i.am@cel.so"
+copyright: "Celso Bonutti"
+
+extra-source-files:
+  - README.md
+  - ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description: Please see the README on GitHub at <https://github.com/celsobonutti/milho-haskell#readme>
+
+dependencies:
+  - base >= 4.7 && < 5
+  - hspec
+  - protolude
+  - text
+  - containers
+  - text
+  - bytestring
+  - megaparsec
+
+default-extensions:
+  - NoImplicitPrelude
+  - OverloadedStrings
+  - DisambiguateRecordFields
+  - NamedFieldPuns
+
+library:
+  source-dirs: src
+
+executables:
+  milho-haskell-exe:
+    main: Main.hs
+    source-dirs: app
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - milho-haskell
+
+tests:
+  milho-haskell-test:
+    main: Spec.hs
+    source-dirs: test
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - milho-haskell
+
+when:
+  condition: flag(incomplete-error)
+  ghc-options:
+    - -Werror=incomplete-patterns
+    - -Werror=missing-fields
+    - -Werror=missing-methods
+
+flags:
+  incomplete-error:
+    description: >
+      Incomplete patterns, missing record fields, and missing class methods are
+      an error
+    manual: false
+    default: true
