@@ -28,6 +28,8 @@ dependencies:
   - text
   - bytestring
   - megaparsec
+  - transformers
+  - file-embed
 
 default-extensions:
   - NoImplicitPrelude

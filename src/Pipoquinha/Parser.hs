@@ -4,40 +4,44 @@ import Control.Monad.Fail (fail)
 import Data.Text (Text)
 import Data.Void
 import Pipoquinha.Types.Data (Atom (..), BuiltIn (..))
-import Protolude hiding (many, some)
+import Protolude hiding (many, some, try)
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
 
 type Parser = Parsec Void Text
 
+test :: Parser Text
+test = try $ string "memes"
+
 builtIn :: Parser BuiltIn
 builtIn =
-  choice
-    [ Add <$ string ".__add__",
-      Mul <$ string ".__mul__",
-      Negate <$ string ".__negate__",
-      Invert <$ string ".__invert__",
-      Eql <$ string ".__eq__",
-      Def <$ string ".__def__",
-      Defn <$ string ".__defn__",
-      Defmacro <$ string ".__defmacro__",
-      Fn <$ string ".__fn__",
-      Let <$ string ".__let__",
-      If <$ string ".__if__",
-      Read <$ string ".__read__",
-      Eval <$ string ".__eval__",
-      Print <$ string ".__loop__",
-      Loop <$ string ".__print__",
-      Do <$ string ".__do__",
-      Not <$ string ".__not__",
-      Cons <$ string ".__cons__",
-      MakeList <$ string ".__make-list__",
-      Car <$ string ".__car__",
-      Cdr <$ string ".__cdr__",
-      Quote <$ string ".__quote__",
-      Gt <$ string ".__gt__"
-    ] <?> "built-in"
+  string ".__"
+  *> try (choice
+    [ Add <$ string "add",
+      Mul <$ string "mul",
+      Negate <$ string "negate",
+      Invert <$ string "invert",
+      Eql <$ string "eq",
+      Defn <$ string "defn",
+      Defmacro <$ string "defmacro",
+      Def <$ string "def",
+      Fn <$ string "fn",
+      Let <$ string "let",
+      If <$ string "if",
+      Read <$ string "read",
+      Eval <$ string "eval",
+      Print <$ string "print",
+      Loop <$ string "loop",
+      Do <$ string "do",
+      Not <$ string "not",
+      Cons <$ string "cons",
+      MakeList <$ string "make-list",
+      Car <$ string "car",
+      Cdr <$ string "cdr",
+      Quote <$ string "quote",
+      Gt <$ string "gt"
+    ]) <* string "__" <?> "built-in"
 
 pNumber :: Parser Rational
 pNumber =
@@ -101,5 +105,5 @@ pAtom =
 pAtomLine :: Parser Atom
 pAtomLine = pAtom <* eof
 
-pAtoms :: Parser [Atom]
-pAtoms = pAtom `sepBy` space1 <* eof
+pAtomFile :: Parser [Atom]
+pAtomFile = (between space space $ pAtom `sepBy` space1) <* eof

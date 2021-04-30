@@ -1,24 +1,49 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Main where
 
-import Prelude (IO)
-import Data.Text (Text)
 import Canjica.Eval
+import Canjica.VarTable
+import Data.ByteString (ByteString)
+import Data.FileEmbed
+import qualified Data.Map as M
+import Data.Text (Text, strip)
+import Data.Text.Encoding (decodeUtf8)
 import Pipoquinha.Parser
 import Pipoquinha.Types.Atom
-import Text.Megaparsec
-import qualified Data.Map as M
-
+import Pipoquinha.Types.Data
 import Protolude
+import Text.Megaparsec hiding (State)
+import Prelude (IO)
 
-main :: IO ()
-main = do
-  input <- getLine
-  putStrLn (run input)
+type MyState = StateT VarTable IO [Char]
 
+basicOps :: ByteString
+basicOps = $(embedFile "std/basic.milho")
 
-run :: Text -> [Char]
-run input =
-  case parse pAtomLine "" input of
-    Left bundle -> errorBundlePretty bundle
-    Right atom -> show $ eval atom M.empty
-    
+main =
+  case  loadFile $ (strip . decodeUtf8) basicOps of
+    Left e ->
+      putStrLn e
+    Right builtIns -> do
+      _ <- runStateT repl builtIns
+      return ()
+
+repl :: MyState
+repl = forever $ do
+  input <- lift getLine
+  result <- state (run input)
+  putStrLn (show result :: Text)
+
+run :: Text -> VarTable -> (Atom, VarTable)
+run input vars =
+  case parse pAtomLine mempty input of
+    Left bundle -> (Error (toS (errorBundlePretty bundle) :: Text), vars)
+    Right atom -> eval vars atom
+
+loadFile :: Text -> Either Text VarTable
+loadFile file =
+  case parse pAtomFile mempty file of
+    Left bundle -> Left (toS (errorBundlePretty bundle) :: Text)
+    Right atoms ->
+      Right $ foldl eval'' M.empty atoms

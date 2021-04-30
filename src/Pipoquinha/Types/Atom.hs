@@ -34,3 +34,9 @@ add (Number x) (Number y) = Number (x + y)
 add e@(Error _) _ = e
 add _ e@(Error _) = e
 add _ _ = Error "Cannot add non-numeric values"
+
+mul :: Atom -> Atom -> Atom
+mul (Number x) (Number y) = Number (x * y)
+mul e@(Error _) _ = e
+mul _ e@(Error _) = e
+mul _ _ = Error "Cannot multiply non-numeric values"

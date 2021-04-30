@@ -33,6 +33,8 @@ library
   exposed-modules:
       Canjica.Apply
       Canjica.Eval
+      Canjica.Function
+      Canjica.Internal
       Canjica.VarTable
       Pipoquinha.Parser
       Pipoquinha.Types.Atom
@@ -50,10 +52,12 @@ library
       base >=4.7 && <5
     , bytestring
     , containers
+    , file-embed
     , hspec
     , megaparsec
     , protolude
     , text
+    , transformers
   if flag(incomplete-error)
     ghc-options: -Werror=incomplete-patterns -Werror=missing-fields -Werror=missing-methods
   default-language: Haskell2010
@@ -74,11 +78,13 @@ executable milho-haskell-exe
       base >=4.7 && <5
     , bytestring
     , containers
+    , file-embed
     , hspec
     , megaparsec
     , milho-haskell
     , protolude
     , text
+    , transformers
   if flag(incomplete-error)
     ghc-options: -Werror=incomplete-patterns -Werror=missing-fields -Werror=missing-methods
   default-language: Haskell2010
@@ -100,11 +106,13 @@ test-suite milho-haskell-test
       base >=4.7 && <5
     , bytestring
     , containers
+    , file-embed
     , hspec
     , megaparsec
     , milho-haskell
     , protolude
     , text
+    , transformers
   if flag(incomplete-error)
     ghc-options: -Werror=incomplete-patterns -Werror=missing-fields -Werror=missing-methods
   default-language: Haskell2010

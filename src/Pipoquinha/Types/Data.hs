@@ -1,14 +1,15 @@
 module Pipoquinha.Types.Data where
 
 import GHC.Show (Show(..))
+import Data.Sequence (Seq)
 
 import Protolude
 
 data Fun =
   Fun {
-    parameters :: [Text],
-    is_variadic :: Bool,
-    atom :: Bool
+    parameters :: Seq Text,
+    isVariadic :: Bool,
+    atom :: Atom
   }
 
 data BuiltIn
@@ -49,3 +50,7 @@ data Atom
   | Number Rational
   | List [Atom]
   | Nil
+
+isSymbol :: Atom -> Bool
+isSymbol (Symbol _) = True
+isSymbol _ = False
