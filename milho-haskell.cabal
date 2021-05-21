@@ -31,11 +31,9 @@ flag incomplete-error
 
 library
   exposed-modules:
-      Canjica.Apply
-      Canjica.Eval
-      Canjica.Function
+      Canjica.EvalApply
       Canjica.Internal
-      Canjica.VarTable
+      Canjica.State
       Pipoquinha.Parser
       Pipoquinha.Types.Atom
       Pipoquinha.Types.Data
@@ -48,9 +46,15 @@ library
       OverloadedStrings
       DisambiguateRecordFields
       NamedFieldPuns
+      DataKinds
+      DeriveGeneric
+      DerivingVia
+      FlexibleContexts
+      TypeApplications
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , capability
     , containers
     , file-embed
     , hspec
@@ -73,10 +77,16 @@ executable milho-haskell-exe
       OverloadedStrings
       DisambiguateRecordFields
       NamedFieldPuns
+      DataKinds
+      DeriveGeneric
+      DerivingVia
+      FlexibleContexts
+      TypeApplications
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , capability
     , containers
     , file-embed
     , hspec
@@ -101,10 +111,16 @@ test-suite milho-haskell-test
       OverloadedStrings
       DisambiguateRecordFields
       NamedFieldPuns
+      DataKinds
+      DeriveGeneric
+      DerivingVia
+      FlexibleContexts
+      TypeApplications
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , capability
     , containers
     , file-embed
     , hspec

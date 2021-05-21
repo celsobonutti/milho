@@ -30,12 +30,18 @@ dependencies:
   - megaparsec
   - transformers
   - file-embed
+  - capability
 
 default-extensions:
   - NoImplicitPrelude
   - OverloadedStrings
   - DisambiguateRecordFields
   - NamedFieldPuns
+  - DataKinds
+  - DeriveGeneric
+  - DerivingVia
+  - FlexibleContexts
+  - TypeApplications
 
 library:
   source-dirs: src

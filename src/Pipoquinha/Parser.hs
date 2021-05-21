@@ -41,7 +41,7 @@ builtIn =
       Cdr <$ string "cdr",
       Quote <$ string "quote",
       Gt <$ string "gt"
-    ]) <* string "__" <?> "built-in"
+    ]) <?> "built-in"
 
 pNumber :: Parser Rational
 pNumber =

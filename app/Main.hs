@@ -1,12 +1,14 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Main where
 
-import Canjica.Eval
-import Canjica.VarTable
+import Canjica.EvalApply
+import Canjica.State
+import Data.IORef
 import Data.ByteString (ByteString)
 import Data.FileEmbed
-import qualified Data.Map as M
+import qualified Data.Map as Map
 import Data.Text (Text, strip)
 import Data.Text.Encoding (decodeUtf8)
 import Pipoquinha.Parser
@@ -21,29 +23,18 @@ type MyState = StateT VarTable IO [Char]
 basicOps :: ByteString
 basicOps = $(embedFile "std/basic.milho")
 
+main :: IO ()
 main =
-  case  loadFile $ (strip . decodeUtf8) basicOps of
-    Left e ->
-      putStrLn e
-    Right builtIns -> do
-      _ <- runStateT repl builtIns
-      return ()
+  print "memes"
 
-repl :: MyState
-repl = forever $ do
-  input <- lift getLine
-  result <- state (run input)
-  putStrLn (show result :: Text)
+run :: IO ()
+run = do
+  table <- newIORef Map.empty
+  forever $ do
+    input <- getLine
+    case parse pAtomLine mempty input of
+      Left bundle -> print . Error . toS . errorBundlePretty $ bundle
+      Right atom -> do
+        atom <- runM (eval atom) (Ctx table)
+        print atom
 
-run :: Text -> VarTable -> (Atom, VarTable)
-run input vars =
-  case parse pAtomLine mempty input of
-    Left bundle -> (Error (toS (errorBundlePretty bundle) :: Text), vars)
-    Right atom -> eval vars atom
-
-loadFile :: Text -> Either Text VarTable
-loadFile file =
-  case parse pAtomFile mempty file of
-    Left bundle -> Left (toS (errorBundlePretty bundle) :: Text)
-    Right atoms ->
-      Right $ foldl eval'' M.empty atoms
