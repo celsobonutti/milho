@@ -106,4 +106,4 @@ pAtomLine :: Parser Atom
 pAtomLine = pAtom <* eof
 
 pAtomFile :: Parser [Atom]
-pAtomFile = (between space space $ pAtom `sepBy` space1) <* eof
+pAtomFile = between space space (pAtom `sepBy` space1) <* eof

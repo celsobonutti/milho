@@ -32,6 +32,7 @@ flag incomplete-error
 library
   exposed-modules:
       Canjica.EvalApply
+      Canjica.Function
       Canjica.Internal
       Canjica.State
       Pipoquinha.Parser

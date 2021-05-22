@@ -1,18 +1,17 @@
 module Canjica.EvalApply where
 
 import Canjica.State
-import Capability.Reader
+import qualified Canjica.Function as Function
 import Capability.State
-import Capability.Source
-import Capability.Sink
+import Capability.Reader
 import Data.IORef
 import qualified Data.Map as Map
 import Pipoquinha.Types.Data
 import Pipoquinha.Types.Atom
 import Pipoquinha.Parser
-import Protolude hiding (MonadReader, ask, get, put, yield)
+import Protolude hiding (MonadReader, ask, get, put, yield, local)
 
-eval :: (HasState "table" VarTable m, MonadIO m) => Atom -> m Atom
+eval :: (HasState "table" VarTable m, HasReader "localScope" VarTable m, MonadIO m) => Atom -> m Atom
 eval atom =
   case atom of
     n@(Number _) -> return n
@@ -25,14 +24,16 @@ eval atom =
     b@(BuiltIn _) -> return b
     Nil -> return Nil
     Symbol name -> do
+      localScope <- ask @"localScope"
       table <- get @"table"
-      return . fromMaybe (Error $ "Undefined variable: " <> name) . Map.lookup name $ table
+      return . fromMaybe (Error $ "Undefined variable: " <> name) . Map.lookup name . Map.union localScope $ table
     List l -> apply l
 
-batchEval :: (HasState "table" VarTable m, MonadIO m) => [Atom] -> m [Atom]
+batchEval :: (HasState "table" VarTable m, HasReader "localScope" VarTable m, MonadIO m) => [Atom] -> m [Atom]
 batchEval = traverse eval
 
-apply :: (HasState "table" VarTable m, MonadIO m) => [Atom] -> m Atom
+apply :: (HasState "table" VarTable m, HasReader "localScope" VarTable m, MonadIO m) => [Atom] -> m Atom
+
 apply [] = return Nil
 
 apply (s@(Symbol _) : as) = do
@@ -53,6 +54,14 @@ apply [BuiltIn Def, Symbol name, atom] = do
   put @"table" (Map.insert name evaluatedAtom table)
   return (Symbol name)
 
+apply (BuiltIn Defn : Symbol name : as) =
+  case Function.create as of
+    Left e -> return $ Error e
+    Right f -> do
+      table <- get @"table"
+      put @"table" (Map.insert name (Function f) table)
+      return $ Symbol name
+
 apply [BuiltIn If, predicate, consequent, alternative] = do
   pred <- eval predicate
   print pred
@@ -66,5 +75,19 @@ apply (BuiltIn Print : rest) = do
   putStrLn . unwords . map show $ evaluatedAtoms
   return Nil
 
-apply _ = return $ Error "Not implemented yet"
+apply (BuiltIn Fn : rest) = do
+  case Function.create rest of
+    Left e -> return $ Error e
+    Right f -> return $ Function f
 
+apply (Function fn : as) = do
+  evaluatedArguments <- batchEval as
+  let
+    (newScope, vars) = Function.proceed fn evaluatedArguments
+  local @"localScope" (Map.union newScope) (eval vars)
+
+apply (List l : as) = do
+  operator <- apply l
+  apply (operator : as)
+
+apply _ = return $ Error "Not implemented yet"

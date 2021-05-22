@@ -7,6 +7,7 @@ import Canjica.EvalApply
 import Canjica.State
 import Data.IORef
 import Data.ByteString (ByteString)
+import Data.ByteString.Char8 (split)
 import Data.FileEmbed
 import qualified Data.Map as Map
 import Data.Text (Text, strip)
@@ -18,6 +19,7 @@ import Protolude
 import Text.Megaparsec hiding (State)
 import Prelude (IO)
 import Capability.State
+import Capability.Reader
 
 type MyState = StateT VarTable IO [Char]
 
@@ -26,15 +28,15 @@ basicOps = $(embedFile "std/basic.milho")
 
 main :: IO ()
 main = do
-  case (strip . decodeUtf8) basicOps of
+  case parseFile basicOps of
     Left e ->
       putStrLn e
-    Right buildInts -> do
+    Right builtIns -> do
       table <- newIORef Map.empty
-      mapM_ (\atom -> runM (eval atom) (Ctx table)) []
-      forever $ runM run (Ctx table)
+      mapM_ (\atom -> runM (eval atom) (Ctx table Map.empty)) builtIns
+      forever $ runM run (Ctx table Map.empty)
 
-run :: (HasState "table" VarTable m, MonadIO m) => m ()
+run :: (HasState "table" VarTable m, HasReader "localScope" VarTable m, MonadIO m) => m ()
 run = do
     input <- liftIO getLine
     case parse pAtomLine mempty input of
@@ -43,3 +45,5 @@ run = do
         atom <- eval atom
         print atom
 
+parseFile :: ByteString -> Either [Char] [Atom]
+parseFile = first errorBundlePretty . parse pAtomFile mempty . strip  . decodeUtf8
