@@ -74,13 +74,13 @@ m3M3$_irados ;; after that, they can hold pretty much anything
 (defn      ;; functions are declared with the defn built-in
   sum      ;; its first argument is the name of your function
   ( a b )  ;; the second one is a list with the name of your parameters
-  (+ a b)  ;; and the third is your function per se
-)
+  (+ a b))  ;; and the third is your function per se
 
-(defn sub ;; You can define multi-arity functions like this.
-  (( x ) (negate x)) ;; And then your function will work according to the number of parameters
-  (( x +rest ) (append-list (+ x) (map negate rest))) ;; They can even be variadics
-) ;; But be careful: you can only have one body per number of params, and one variadic
+(defn sub                                    ;; You can define multi-arity functions like this.
+  (( x ) (negate x))                         ;; And then your function will work according to the number of parameters
+  (( x +rest )                               ;; They can even be variadics
+    (append-list (+ x) (map negate rest))))  ;; But be careful: you can only have one body per number of params, and one variadic
+   
 
 (fn ( x ) (* 2 x)) ;; Anonymous functions are defined like this
 ```
@@ -91,8 +91,8 @@ m3M3$_irados ;; after that, they can hold pretty much anything
 (defmacro         ;; You can define macros with the defmacro keyword
   add             ;; Macros are just like functions, except their arguments are not evaluated
   (+rest)         ;; before the macro is expanded, and then ran
-  (cons + rest)   ;; This means that this is the same as (rest1 + rest2 + rest 3 ...)
-)                 ;; A function with the same body would evaluate to the list (.__add__ rest1 rest2 rest3...)
+  (cons + rest))  ;; This means that this is the same as (rest1 + rest2 + rest 3 ...)
+                  ;; A function with the same body would evaluate to the list (.__add__ rest1 rest2 rest3...)
 
 ```
 
@@ -103,8 +103,7 @@ m3M3$_irados ;; after that, they can hold pretty much anything
 
 (if (is-error res) ;; Errors can be checked with the is-error builtin
   (print "Oops, I broke")
-  (print "Oh well, I'm working")
-)
+  (print "Oh well, I'm working"))
 
 (get-error-message res) ;; You can access your error's message with the get-error-message bultin
 (get-error-code res) ;; Or access the code with get-error-code

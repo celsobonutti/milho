@@ -1,4 +1,3 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Main where
@@ -20,6 +19,7 @@ import Text.Megaparsec hiding (State)
 import Prelude (IO)
 import Capability.State
 import Capability.Reader
+import System.IO (BufferMode (NoBuffering), hSetBuffering, stdout)
 
 type MyState = StateT VarTable IO [Char]
 
@@ -28,6 +28,7 @@ basicOps = $(embedFile "std/basic.milho")
 
 main :: IO ()
 main = do
+  hSetBuffering stdout NoBuffering
   case parseFile basicOps of
     Left e ->
       putStrLn e

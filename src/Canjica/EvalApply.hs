@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 module Canjica.EvalApply where
 
 import Canjica.State
@@ -9,7 +10,9 @@ import qualified Data.Map as Map
 import Pipoquinha.Types.Data
 import Pipoquinha.Types.Atom
 import Pipoquinha.Parser
+import Text.Megaparsec (parse, errorBundlePretty)
 import Protolude hiding (MonadReader, ask, get, put, yield, local)
+import Data.Text (pack)
 
 eval :: (HasState "table" VarTable m, HasReader "localScope" VarTable m, MonadIO m) => Atom -> m Atom
 eval atom =
@@ -40,13 +43,11 @@ apply (s@(Symbol _) : as) = do
   operator <- eval s
   apply (operator : as)
 
-apply (BuiltIn Add : as) = do
-  evaluatedArguments <- batchEval as
-  return (foldr add (Number 0) evaluatedArguments)
+apply (BuiltIn Add : as) =
+  batchEval as <&> foldr add (Number 0)
 
-apply (BuiltIn Mul : as) = do
-  evaluatedArguments <- batchEval as
-  return (foldr mul (Number 1) evaluatedArguments)
+apply (BuiltIn Mul : as) =
+  batchEval as <&> foldr mul (Number 1)
 
 apply [BuiltIn Def, Symbol name, atom] = do
   evaluatedAtom <- eval atom
@@ -54,37 +55,60 @@ apply [BuiltIn Def, Symbol name, atom] = do
   put @"table" (Map.insert name evaluatedAtom table)
   return (Symbol name)
 
-apply (BuiltIn Defn : Symbol name : as) =
-  case Function.create as of
+apply (BuiltIn Defn : Symbol name : as) = do
+  scope <- ask @"localScope"
+  case Function.create scope as of
     Left e -> return $ Error e
     Right f -> do
       table <- get @"table"
       put @"table" (Map.insert name (Function f) table)
       return $ Symbol name
 
-apply [BuiltIn If, predicate, consequent, alternative] = do
-  pred <- eval predicate
-  print pred
-  case pred of
-    e@(Error _) -> return e
-    Bool False -> eval alternative
-    _ -> eval consequent
+apply [BuiltIn If, predicate, consequent, alternative] =
+  eval predicate
+    >>= \case
+      e@(Error _) -> return e
+      Bool False -> eval alternative
+      _ -> eval consequent
 
-apply (BuiltIn Print : rest) = do
+apply (BuiltIn Print : rest) =
+  batchEval rest
+    >>= putStr . unwords . map show
+    >> return Nil
+
+apply (BuiltIn Fn : rest) =
+  ask @"localScope"
+  >>= \scope -> return $ case Function.create scope rest of
+    Left e -> Error e
+    Right f -> Function f
+
+apply (BuiltIn Eql : rest) = do
   evaluatedAtoms <- batchEval rest
-  putStrLn . unwords . map show $ evaluatedAtoms
-  return Nil
+  return $ case evaluatedAtoms of
+    [] -> Error "Wrong number of arguments for =. Expecting at least one, found 0"
+    (base : rest) ->
+      Bool $ (== base) `all` rest
 
-apply (BuiltIn Fn : rest) = do
-  case Function.create rest of
-    Left e -> return $ Error e
-    Right f -> return $ Function f
+apply [BuiltIn Loop, procedure] =
+  forever (eval procedure)
+
+apply [BuiltIn Read] = do
+  input <- liftIO getLine
+  return $ case parse pAtomLine mempty input of
+    Left e -> Error . pack . errorBundlePretty $ e
+    Right a -> a
+
+apply [BuiltIn Eval, value] =
+  eval >=> eval $ value
+
+apply [BuiltIn Quote, atom] =
+  return atom
 
 apply (Function fn : as) = do
   evaluatedArguments <- batchEval as
   let
     (newScope, vars) = Function.proceed fn evaluatedArguments
-  local @"localScope" (Map.union newScope) (eval vars)
+  local @"localScope" (\localScope -> Map.unions [newScope, scope fn, localScope]) (eval vars)
 
 apply (List l : as) = do
   operator <- apply l

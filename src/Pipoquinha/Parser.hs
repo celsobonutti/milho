@@ -94,8 +94,8 @@ pAtom =
   choice
     [ Nil <$ string "Nil",
       Bool <$> pBool,
+      try (Number <$> pNumber),
       Symbol <$> pSymbol,
-      Number <$> pNumber,
       Str <$> pString,
       BuiltIn <$> builtIn,
       List <$> pList,

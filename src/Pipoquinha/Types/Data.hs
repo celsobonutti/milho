@@ -5,12 +5,16 @@ import Data.Sequence (Seq)
 
 import Protolude
 
+type VarTable = Map Text Atom
+
 data Fun =
   Fun {
     parameters :: Seq Text,
     isVariadic :: Bool,
-    atom :: Atom
+    atom :: Atom,
+    scope :: VarTable
   }
+  deriving (Eq)
 
 data BuiltIn
   = Add
@@ -50,6 +54,7 @@ data Atom
   | Number Rational
   | List [Atom]
   | Nil
+  deriving (Eq)
 
 isSymbol :: Atom -> Bool
 isSymbol (Symbol _) = True

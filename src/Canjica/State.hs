@@ -11,7 +11,6 @@ import Pipoquinha.Types.Atom
 import Pipoquinha.Types.Data
 import Protolude hiding (MonadReader, ask, get, put)
 
-type VarTable = Map Text Atom
 
 data Ctx = Ctx
   { table :: IORef VarTable,

@@ -9,15 +9,15 @@ import qualified Data.Sequence as Seq
 import Protolude
 
 -- Function functions
-create :: [Atom] -> Either Text Fun
-create [List parameters, body]
+create :: VarTable -> [Atom] -> Either Text Fun
+create scope [List parameters, body]
   | all isSymbol parameters =
     let extractText (Symbol name) list = name : list
         extractText _ list = list
         paramNames = foldr extractText [] parameters
-     in Right $ Fun {atom = body, isVariadic = False, parameters = Seq.fromList paramNames}
+     in Right $ Fun {atom = body, isVariadic = False, parameters = Seq.fromList paramNames, scope}
   | otherwise = Left "Every value in the parameter list must be a symbol"
-create _ = Left "Invalid function arguments"
+create _ _ = Left "Invalid function arguments"
 
 proceed :: Fun -> [Atom] -> (VarTable, Atom)
 proceed Fun {atom, isVariadic, parameters} arguments
