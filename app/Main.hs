@@ -17,6 +17,7 @@ import Pipoquinha.Types.Data
 import Protolude
 import Text.Megaparsec hiding (State)
 import Prelude (IO)
+import Capability.State
 
 type MyState = StateT VarTable IO [Char]
 
@@ -24,17 +25,21 @@ basicOps :: ByteString
 basicOps = $(embedFile "std/basic.milho")
 
 main :: IO ()
-main =
-  print "memes"
+main = do
+  case (strip . decodeUtf8) basicOps of
+    Left e ->
+      putStrLn e
+    Right buildInts -> do
+      table <- newIORef Map.empty
+      mapM_ (\atom -> runM (eval atom) (Ctx table)) []
+      forever $ runM run (Ctx table)
 
-run :: IO ()
+run :: (HasState "table" VarTable m, MonadIO m) => m ()
 run = do
-  table <- newIORef Map.empty
-  forever $ do
-    input <- getLine
+    input <- liftIO getLine
     case parse pAtomLine mempty input of
       Left bundle -> print . Error . toS . errorBundlePretty $ bundle
       Right atom -> do
-        atom <- runM (eval atom) (Ctx table)
+        atom <- eval atom
         print atom
 
