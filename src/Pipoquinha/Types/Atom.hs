@@ -12,9 +12,12 @@ instance Show Atom where
   show (Bool b) = show b
   show (Symbol t) = toS $ "#" <> t
   show (Error e) = toS $ "Error: " <> e
-  show (Function f) = "fn#" <>  (show . length $ parameters f)
-  show (Macro m) = "macro#" <> (show . length $ parameters m)
-  show (MultiArityFn _) = "multi-arity-function"
+  show (Function (Simple parameters _ _)) = "fn#" <> (show . length $ parameters)
+  show (Function (Variadic parameters _ _)) = "fn#variadic." <> (show . length $ parameters)
+  show (Function (MultiArity fns)) = unwords . map (show . Function) $ fns
+  show (Macro (Simple parameters _ _)) = "macro#" <>  (show . length $ parameters)
+  show (Macro (Variadic parameters _ _)) = "macro#variadic." <> (show . length $ parameters)
+  show (Macro (MultiArity fns)) = unwords . map (show . Function) $ fns
   show (Number n) = showN n
   show (Str s) = toS s
   show (BuiltIn b) = "BuilIn." <> show b

@@ -7,14 +7,19 @@ import Protolude
 
 type VarTable = Map Text Atom
 
-data Fun =
-  Fun {
+data Fun
+  = Simple {
     parameters :: Seq Text,
-    isVariadic :: Bool,
-    atom :: Atom,
+    body :: Atom,
     scope :: VarTable
   }
-  deriving (Eq)
+  | Variadic {
+    parameters :: Seq Text,
+    body :: Atom,
+    scope :: VarTable
+  }
+  | MultiArity [Fun]
+  deriving (Eq, Ord)
 
 data BuiltIn
   = Add
@@ -40,7 +45,7 @@ data BuiltIn
   | Cdr
   | Quote
   | Gt
-  deriving (Eq, Show)
+  deriving (Eq, Show, Ord)
 
 data Atom
   = Function Fun
@@ -48,13 +53,12 @@ data Atom
   | Error Text
   | Symbol Text
   | Macro Fun
-  | MultiArityFn Fun
   | Str Text
   | BuiltIn BuiltIn
   | Number Rational
   | List [Atom]
   | Nil
-  deriving (Eq)
+  deriving (Eq, Ord)
 
 isSymbol :: Atom -> Bool
 isSymbol (Symbol _) = True
