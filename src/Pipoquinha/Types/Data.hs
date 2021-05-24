@@ -57,7 +57,6 @@ data Atom
   | BuiltIn BuiltIn
   | Number Rational
   | List [Atom]
-  | Nil
   deriving (Eq, Ord)
 
 isSymbol :: Atom -> Bool

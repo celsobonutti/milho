@@ -26,7 +26,6 @@ eval atom =
     e@(Error _) -> return e
     s@(Str _) -> return s
     b@(BuiltIn _) -> return b
-    Nil -> return Nil
     Symbol name -> do
       localScope <- ask @"localScope"
       table <- get @"table"
@@ -37,7 +36,7 @@ batchEval :: (HasState "table" VarTable m, HasReader "localScope" VarTable m, Mo
 batchEval = traverse eval
 
 apply :: (HasState "table" VarTable m, HasReader "localScope" VarTable m, MonadIO m) => [Atom] -> m Atom
-apply [] = return Nil
+apply [] = return (List [])
 apply (BuiltIn Add : as) =
   batchEval as <&> foldr add (Number 0)
 apply (BuiltIn Mul : as) =
@@ -64,7 +63,7 @@ apply [BuiltIn If, predicate, consequent, alternative] =
 apply (BuiltIn Print : rest) =
   batchEval rest
     >>= putStr . unwords . map show
-    >> return Nil
+    >> return (List [])
 apply (BuiltIn Fn : rest) =
   ask @"localScope"
     >>= \scope -> return $ case Function.create scope rest of
@@ -88,13 +87,27 @@ apply [BuiltIn Eval, value] =
 apply [BuiltIn Quote, atom] =
   return atom
 apply (BuiltIn Do : rest) =
-  foldM (const eval) Nil rest
+  foldM (const eval) (List []) rest
 apply [BuiltIn Cons, car, cdr] =
   eval cdr
     >>= \case
       List l ->
         eval car <&> List . (: l)
       _ -> return (Error "Can only cons into lists")
+apply [BuiltIn Car, atom] =
+  eval atom
+    >>= \case
+      List [] -> return $ List []
+      List (x : _) -> return x
+      _ -> return $ Error "Car can only be applied to lists"
+apply [BuiltIn Cdr, atom] =
+  eval atom
+    >>= \case
+      List [] -> return $ List []
+      List (_ : xs) -> return $ List xs
+      _ -> return $ Error "Cdr can only be applied to lists"
+apply (BuiltIn _ : _) =
+  return $ Error "Not implemented yet"
 apply (s@(Symbol _) : as) = do
   operator <- eval s
   apply (operator : as)
@@ -102,7 +115,16 @@ apply (Function fn : as) = do
   evaluatedArguments <- batchEval as
   let (newScope, vars) = Function.proceed fn evaluatedArguments
   local @"localScope" (\localScope -> Map.unions [newScope, scope fn, localScope]) (eval vars)
+apply (Macro _ : _) =
+  return $ Error "Macros are not implemented yet"
 apply (List l : as) = do
   operator <- apply l
   apply (operator : as)
-apply _ = return $ Error "Not implemented yet"
+apply (Bool _ : _) =
+  return $ Error "Cannot apply boolean as an operator"
+apply (Str _ : _) =
+  return $ Error "Cannot apply string as an operator"
+apply (Number _ : _) =
+  return $ Error "Cannot apply number as an operator"
+apply (e@(Error _) : _) =
+  return e

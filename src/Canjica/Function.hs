@@ -42,7 +42,7 @@ validateParameters (List atoms)
     case Seq.fromList . mapMaybe extractName $ atoms of
       (parameters :|> "+rest") ->
         VariadicP parameters
-      (("+rest" `elem`) -> True) ->
+      parameters | "+rest" `elem` parameters ->
         Invalid MisplacedVariadic
       parameters ->
         SimpleP parameters

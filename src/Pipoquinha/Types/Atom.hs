@@ -21,8 +21,8 @@ instance Show Atom where
   show (Number n) = showN n
   show (Str s) = toS s
   show (BuiltIn b) = "BuilIn." <> show b
+  show (List []) = "Nil"
   show (List a) = showL a
-  show Nil = "Nil"
 
 showL :: [Atom] -> [Char]
 showL atoms = '(' : (unwords . map show $ atoms) ++ ")"

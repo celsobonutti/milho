@@ -92,7 +92,7 @@ pSymbol = do
 pAtom :: Parser Atom
 pAtom =
   choice
-    [ Nil <$ string "Nil",
+    [ List [] <$ string "Nil",
       Bool <$> pBool,
       try (Number <$> pNumber),
       Symbol <$> pSymbol,
