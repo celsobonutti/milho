@@ -10,6 +10,7 @@ import Data.Sequence (Seq((:|>)))
 import qualified Data.Set as Set
 import Data.Text (Text)
 import Pipoquinha.Types.Data
+import qualified Pipoquinha.Types.Pair as Pair
 import Protolude
 
 data ArgumentError
@@ -35,7 +36,7 @@ create scope [validateParameters -> Invalid reason, body] =
 create _ _ = Left "Invalid function definition: a function definition should be formed by a list of symbols and the body of the function."
 
 validateParameters :: Atom -> FunctionParameters
-validateParameters (List atoms)
+validateParameters (Pair (List atoms))
   | not onlyHasSymbols = Invalid NotListOfSymbols
   | not isUniq =  Invalid RepeatedSymbol
   | otherwise =
@@ -67,7 +68,7 @@ proceed Variadic {body, parameters} arguments
   where
     (nonVariadic, rest) = splitAt (length parameters) arguments
     localTable = Map.fromList (zip (toList parameters) nonVariadic)
-    variadicTable = Map.insert "+rest" (List rest) localTable
+    variadicTable = Map.insert "+rest" (Pair (List rest)) localTable
 proceed _ _ =
   (Map.empty, Error "oops")
 

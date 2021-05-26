@@ -33,11 +33,10 @@ library
   exposed-modules:
       Canjica.EvalApply
       Canjica.Function
-      Canjica.Internal
       Canjica.State
       Pipoquinha.Parser
-      Pipoquinha.Types.Atom
       Pipoquinha.Types.Data
+      Pipoquinha.Types.Pair
   other-modules:
       Paths_milho_haskell
   hs-source-dirs:
@@ -60,6 +59,7 @@ library
     , file-embed
     , hspec
     , megaparsec
+    , parser-combinators
     , protolude
     , text
     , transformers
@@ -93,6 +93,7 @@ executable milho-haskell-exe
     , hspec
     , megaparsec
     , milho-haskell
+    , parser-combinators
     , protolude
     , text
     , transformers
@@ -127,6 +128,7 @@ test-suite milho-haskell-test
     , hspec
     , megaparsec
     , milho-haskell
+    , parser-combinators
     , protolude
     , text
     , transformers

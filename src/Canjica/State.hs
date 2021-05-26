@@ -7,7 +7,6 @@ import Capability.State
 import Data.IORef
 import qualified Data.Map as Map
 import GHC.Generics (Generic)
-import Pipoquinha.Types.Atom
 import Pipoquinha.Types.Data
 import Protolude hiding (MonadReader, ask, get, put)
 

@@ -3,10 +3,12 @@ module Pipoquinha.Parser where
 import Control.Monad.Fail (fail)
 import Data.Text (Text)
 import Data.Void
-import Pipoquinha.Types.Data (Atom (..), BuiltIn (..))
+import Pipoquinha.Types.Data
 import Protolude hiding (many, some, try)
-import Text.Megaparsec
+import Data.List.NonEmpty
+import Text.Megaparsec hiding (endBy1)
 import Text.Megaparsec.Char
+import Control.Monad.Combinators.NonEmpty (endBy1)
 import qualified Text.Megaparsec.Char.Lexer as L
 
 type Parser = Parsec Void Text
@@ -68,6 +70,19 @@ pBool =
 pString :: Parser Text
 pString = toS <$> between (char '\"') (char '\"') (many $ satisfy (/= '"')) <?> "string"
 
+pPair :: Parser Pair
+pPair = do
+  _ <- char '(' *> space
+  head <- pAtom `endBy1` space1
+  _ <- char '.' *> space1
+  tail <- pAtom
+  _ <- char ')' *> space
+  return (make head tail) <?> "pair"
+  where
+    make (x :| []) y = x :.: y
+    make (x :| xs) y = x ::: make (fromList xs) y
+
+
 pList :: Parser [Atom]
 pList = between (char '(') (char ')') (space *> pAtom `sepBy` space1 <* space) <?> "list"
 
@@ -75,7 +90,7 @@ pQuotedAtom :: Parser Atom
 pQuotedAtom = (do
   _ <- char '\''
   a <- pAtom
-  return (List [BuiltIn Quote, a])) <?> "quote"
+  return (Pair (List [BuiltIn Quote, a]))) <?> "quote"
 
 invalidSymbolChars :: [Char]
 invalidSymbolChars = "[]() \t\r\n\"'"
@@ -92,13 +107,14 @@ pSymbol = do
 pAtom :: Parser Atom
 pAtom =
   choice
-    [ List [] <$ string "Nil",
+    [ Pair Nil <$ string "Nil",
       Bool <$> pBool,
       try (Number <$> pNumber),
       Symbol <$> pSymbol,
       Str <$> pString,
       BuiltIn <$> builtIn,
-      List <$> pList,
+      try (Pair <$> pPair),
+      Pair . List <$> pList,
       pQuotedAtom
     ] <?> "atom"
 

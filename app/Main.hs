@@ -12,7 +12,6 @@ import qualified Data.Map as Map
 import Data.Text (Text, strip)
 import Data.Text.Encoding (decodeUtf8)
 import Pipoquinha.Parser
-import Pipoquinha.Types.Atom
 import Pipoquinha.Types.Data
 import Protolude
 import Text.Megaparsec hiding (State)
