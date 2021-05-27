@@ -134,8 +134,10 @@ apply (s@(Symbol _) : as) = do
 
 apply (Function fn : as) = do
   evaluatedArguments <- batchEval as
-  let (newScope, vars) = Function.proceed evaluatedArguments fn
-  local @"localScope" (Map.union newScope) (eval vars)
+  case Function.proceed evaluatedArguments fn of
+    Left e -> return $ Error e
+    Right (newScope, vars) ->
+      local @"localScope" (Map.union newScope) (eval vars)
 
 apply (Macro _ : _) =
   return $ Error "Macros are not implemented yet"

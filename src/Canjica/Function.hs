@@ -82,33 +82,26 @@ validateParameters (Pair (List atoms))
     extractName _ = Nothing
 validateParameters _ = Invalid NotListOfSymbols
 
-proceed :: [Atom] -> Fun -> (VarTable, Atom)
+proceed :: [Atom] -> Fun -> Either Text (VarTable, Atom)
 proceed  arguments (Simple SF {body, parameters, scope})
-  | length arguments == length parameters = (Map.union localTable scope , body)
+  | length arguments == length parameters = Right (Map.union localTable scope , body)
   | otherwise =
-    (Map.empty, Error "Wrong number of arguments for function")
+    Left "Wrong number of arguments for function"
   where
     localTable = Map.fromList (zip (toList parameters) arguments)
 proceed arguments (Variadic VF {body, parameters, scope})
-  | length arguments >= length parameters = (Map.union variadicTable scope, body)
+  | length arguments >= length parameters = Right (Map.union variadicTable scope, body)
   | otherwise =
-    (Map.empty, Error "Not enough arguments for variadic function")
+    Left "Not enough arguments for variadic function"
   where
     (nonVariadic, rest) = splitAt (length parameters) arguments
     localTable = Map.fromList (zip (toList parameters) nonVariadic)
     variadicTable = Map.insert "+rest" (Pair (List rest)) localTable
-proceed  arguments (MultiArity MAF {bodies, variadic}) =
-  case proceed arguments . Simple <$> Map.lookup (length arguments) bodies of
-    Nothing ->
-      case proceed arguments . Variadic <$> variadic of
-        Nothing -> (Map.empty, Error "No body matches this number of arguments")
-        Just (_, Error _) -> (Map.empty, Error "No body matches this number of arguments")
-        Just res -> res
-
-    Just result -> result
+proceed arguments (MultiArity MAF {bodies, variadic}) =
+  first (const "There is no function body compatible with this number of arguments") . fromMaybe (Left "") $
+    proceed arguments . Simple <$> Map.lookup (length arguments) bodies <|> proceed arguments . Variadic <$> variadic
 
 infixr 9 ===
 (===) :: Eq b => (a -> b) -> (a -> b) -> a -> Bool
 (===) = liftA2 (==)
-
 
