@@ -132,17 +132,7 @@ apply (s@(Symbol _) : as) = do
   operator <- eval s
   apply (operator : as)
 
-apply (Function fn@(Simple SF { scope }) : as) = do
-  evaluatedArguments <- batchEval as
-  let (newScope, vars) = Function.proceed evaluatedArguments fn
-  local @"localScope" (Map.union newScope) (eval vars)
-
-apply (Function fn@(Variadic VF { scope }) : as) = do
-  evaluatedArguments <- batchEval as
-  let (newScope, vars) = Function.proceed evaluatedArguments fn
-  local @"localScope" (Map.union newScope) (eval vars)
-
-apply (Function fn@(MultiArity MAF {}) : as) = do
+apply (Function fn : as) = do
   evaluatedArguments <- batchEval as
   let (newScope, vars) = Function.proceed evaluatedArguments fn
   local @"localScope" (Map.union newScope) (eval vars)
