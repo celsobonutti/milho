@@ -98,8 +98,8 @@ proceed arguments (Variadic VF {body, parameters, scope})
     localTable = Map.fromList (zip (toList parameters) nonVariadic)
     variadicTable = Map.insert "+rest" (Pair (List rest)) localTable
 proceed arguments (MultiArity MAF {bodies, variadic}) =
-  first (const "There is no function body compatible with this number of arguments") . fromMaybe (Left "") $
-    proceed arguments . Simple <$> Map.lookup (length arguments) bodies <|> proceed arguments . Variadic <$> variadic
+  first (const "There is no function body compatible with this number of arguments") . maybe (Left "") (proceed arguments) $
+     (Simple <$> Map.lookup (length arguments) bodies <|> Variadic <$> variadic)
 
 infixr 9 ===
 (===) :: Eq b => (a -> b) -> (a -> b) -> a -> Bool
