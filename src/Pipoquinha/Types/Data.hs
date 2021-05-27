@@ -4,9 +4,9 @@
 module Pipoquinha.Types.Data where
 
 import Data.List (unwords)
-import Prelude(Show(..))
 import Data.Sequence (Seq)
 import Protolude hiding (show, unwords)
+import Prelude (Show (..))
 
 data Pair
   = Nil
@@ -15,12 +15,20 @@ data Pair
 
 infixr 9 :::
 
-pattern x ::: xs <- P x (Pair xs) where
-  x ::: xs = P x (Pair xs)
-pattern x :.: y <- P x y where
-  x :.: y = P x y
-pattern List x <- (pairToList -> Just x) where
-  List x = pairFromList x
+pattern x ::: xs <-
+  P x (Pair xs)
+  where
+    x ::: xs = P x (Pair xs)
+
+pattern x :.: y <-
+  P x y
+  where
+    x :.: y = P x y
+
+pattern List x <-
+  (pairToList -> Just x)
+  where
+    List x = pairFromList x
 
 pairFromList :: [Atom] -> Pair
 pairFromList = foldr (:::) Nil
@@ -31,6 +39,7 @@ pairToList (x ::: xs) = (x :) <$> pairToList xs
 pairToList (x :.: xs) = Nothing
 
 {-# COMPLETE (:.:), (:::), Nil #-}
+
 {-# COMPLETE (:.:), List, Nil #-}
 
 instance Show Pair where
@@ -41,19 +50,28 @@ instance Show Pair where
 
 type VarTable = Map Text Atom
 
+data SimpleFunction = SF
+  { parameters :: Seq Text,
+    body :: Atom,
+    scope :: VarTable
+  } deriving (Eq, Ord, Show)
+
+data VariadicFunction = VF
+  { parameters :: Seq Text,
+    body :: Atom,
+    scope :: VarTable
+  } deriving (Eq, Ord, Show)
+
+data MultiArityFunction = MAF
+  { bodies :: Map Int SimpleFunction,
+    variadic :: Maybe VariadicFunction
+  } deriving (Eq, Ord, Show)
+
 data Fun
-  = Simple {
-    parameters :: Seq Text,
-    body :: Atom,
-    scope :: VarTable
-  }
-  | Variadic {
-    parameters :: Seq Text,
-    body :: Atom,
-    scope :: VarTable
-  }
-  | MultiArity [Fun]
-  deriving (Eq, Ord)
+  = Simple SimpleFunction
+  | Variadic VariadicFunction
+  | MultiArity MultiArityFunction
+  deriving (Eq, Ord, Show)
 
 data BuiltIn
   = Add
@@ -101,12 +119,12 @@ instance Show Atom where
   show (Bool b) = show b
   show (Symbol t) = toS $ "#" <> t
   show (Error e) = toS $ "Error: " <> e
-  show (Function (Simple parameters _ _)) = "fn#" <> (show . length $ parameters)
-  show (Function (Variadic parameters _ _)) = "fn#variadic." <> (show . length $ parameters)
-  show (Function (MultiArity fns)) = unwords . map (show . Function) $ fns
-  show (Macro (Simple parameters _ _)) = "macro#" <>  (show . length $ parameters)
-  show (Macro (Variadic parameters _ _)) = "macro#variadic." <> (show . length $ parameters)
-  show (Macro (MultiArity fns)) = unwords . map (show . Function) $ fns
+  show (Function (Simple (SF parameters _ _))) = "fn#" <> (show . length $ parameters)
+  show (Function (Variadic (VF parameters _ _))) = "fn#variadic." <> (show . length $ parameters)
+  show (Function (MultiArity (MAF fns _))) = unwords . map show . toList $ fns
+  show (Macro (Simple (SF parameters _ _))) = "macro#" <> (show . length $ parameters)
+  show (Macro (Variadic (VF parameters _ _))) = "macro#variadic." <> (show . length $ parameters)
+  show (Macro (MultiArity (MAF fns _))) = unwords . map show . toList $ fns
   show (Number n) = showN n
   show (Str s) = toS s
   show (BuiltIn b) = "BuilIn." <> show b

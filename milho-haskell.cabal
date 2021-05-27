@@ -51,6 +51,7 @@ library
       DerivingVia
       FlexibleContexts
       TypeApplications
+      DuplicateRecordFields
   build-depends:
       base >=4.7 && <5
     , bytestring
@@ -83,6 +84,7 @@ executable milho-haskell-exe
       DerivingVia
       FlexibleContexts
       TypeApplications
+      DuplicateRecordFields
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
@@ -118,6 +120,7 @@ test-suite milho-haskell-test
       DerivingVia
       FlexibleContexts
       TypeApplications
+      DuplicateRecordFields
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5

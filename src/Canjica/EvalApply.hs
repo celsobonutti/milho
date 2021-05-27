@@ -132,10 +132,20 @@ apply (s@(Symbol _) : as) = do
   operator <- eval s
   apply (operator : as)
 
-apply (Function fn : as) = do
+apply (Function fn@(Simple SF { scope }) : as) = do
   evaluatedArguments <- batchEval as
-  let (newScope, vars) = Function.proceed fn evaluatedArguments
-  local @"localScope" (\localScope -> Map.unions [newScope, scope fn, localScope]) (eval vars)
+  let (newScope, vars) = Function.proceed evaluatedArguments fn
+  local @"localScope" (Map.union newScope) (eval vars)
+
+apply (Function fn@(Variadic VF { scope }) : as) = do
+  evaluatedArguments <- batchEval as
+  let (newScope, vars) = Function.proceed evaluatedArguments fn
+  local @"localScope" (Map.union newScope) (eval vars)
+
+apply (Function fn@(MultiArity MAF {}) : as) = do
+  evaluatedArguments <- batchEval as
+  let (newScope, vars) = Function.proceed evaluatedArguments fn
+  local @"localScope" (Map.union newScope) (eval vars)
 
 apply (Macro _ : _) =
   return $ Error "Macros are not implemented yet"
