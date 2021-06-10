@@ -1,0 +1,26 @@
+(defn -
+    ((x) (negate x))
+  ((x +rest) (eval (append '(+ x) (map negate +rest)))))
+
+(defn /
+  ((x) (invert x))
+  ((x +rest) (eval (append '(* x) (map invert +rest)))))
+
+(defn denom (x) (numerator (invert x)))
+
+(defn even? (x) (= 1 (denom (/ x 2))))
+
+(defn test (memes)
+      (fn (bozzano)))
+
+(defn inspect (f)
+  ((fn (y)
+     (fn (z)
+       (if (= z 'retrieve)
+           y
+           (do
+             (set! y (+ 1 y))
+             (f z)))))
+   0))
+
+(defn add-one (x) (+ x 1))

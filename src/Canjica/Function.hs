@@ -2,8 +2,8 @@
 
 module Canjica.Function where
 
-import Canjica.State
-import Capability.State
+import Data.IORef
+import Capability.State hiding ((:.:))
 import qualified Data.Map as Map
 import qualified Data.Sequence as Seq
 import Data.Sequence (Seq((:|>)))
@@ -25,12 +25,12 @@ data FunctionParameters
   | VariadicP (Seq Text)
   | Invalid ArgumentError
 
-create :: VarTable -> [Atom] -> Either Text Fun
-create scope [validateParameters -> SimpleP parameters, body] =
-  Right . Simple $ SF { body, parameters, scope }
-create scope [validateParameters -> VariadicP parameters, body] =
-  Right . Variadic $ VF { body, parameters, scope }
-create scope (fmap (fmap splitFunctions  . traverse (create scope)) . traverse fromAtomList -> Just (Right functions)) =
+create :: Environment -> [Atom] -> Either Text Fun
+create environment [validateParameters -> SimpleP parameters, body] =
+  Right . Simple $ SF { body, parameters, environment }
+create environment [validateParameters -> VariadicP parameters, body] =
+  Right . Variadic $ VF { body, parameters, environment }
+create environment (fmap (fmap splitFunctions  . traverse (create environment)) . traverse fromAtomList -> Just (Right functions)) =
   case functions of
     (_, _, multiArityFunction : _) -> Left "Cannot have a multi arity function inside another on"
     (_, _ : _ : _, []) -> Left "Cannot have more than one variadic function body"
@@ -42,7 +42,7 @@ create scope (fmap (fmap splitFunctions  . traverse (create scope)) . traverse f
           Right . MultiArity  $ MAF {bodies, variadic}
         else
           Left "Cannot have multiple bodies with the same number of arguments"
-create scope [validateParameters -> Invalid reason, body] =
+create environment [validateParameters -> Invalid reason, body] =
   Left $ case reason of
     NotListOfSymbols -> "Parameter list must be a list of Symbols"
     RepeatedSymbol -> "There must be no repeated parameter names"
@@ -82,15 +82,15 @@ validateParameters (Pair (List atoms))
     extractName _ = Nothing
 validateParameters _ = Invalid NotListOfSymbols
 
-proceed :: [Atom] -> Fun -> Either Text (VarTable, Atom)
-proceed  arguments (Simple SF {body, parameters, scope})
-  | length arguments == length parameters = Right (Map.union localTable scope , body)
+proceed :: [Atom] -> Fun -> Either Text (VarTable, Environment, Atom)
+proceed  arguments (Simple SF {body, parameters, environment})
+  | length arguments == length parameters = Right (localTable, environment , body)
   | otherwise =
     Left "Wrong number of arguments for function"
   where
     localTable = Map.fromList (zip (toList parameters) arguments)
-proceed arguments (Variadic VF {body, parameters, scope})
-  | length arguments >= length parameters = Right (Map.union variadicTable scope, body)
+proceed arguments (Variadic VF {body, parameters, environment})
+  | length arguments >= length parameters = Right (localTable, environment, body)
   | otherwise =
     Left "Not enough arguments for variadic function"
   where

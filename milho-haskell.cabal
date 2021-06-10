@@ -33,7 +33,6 @@ library
   exposed-modules:
       Canjica.EvalApply
       Canjica.Function
-      Canjica.State
       Pipoquinha.Parser
       Pipoquinha.Types.Data
       Pipoquinha.Types.Pair

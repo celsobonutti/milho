@@ -21,4 +21,15 @@
 (def car .__car)
 (def cdr .__cdr)
 (def quote .__quote)
-   
+(def set! .__set)
+(def numerator .__numerator)
+
+(defn inspect (f)
+  ((fn (y)
+     (fn (z)
+       (if (= z 'retrieve)
+           y
+           (do
+             (set! y (+ 1 y))
+             (f z)))))
+   0))

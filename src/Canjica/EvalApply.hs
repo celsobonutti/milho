@@ -4,7 +4,6 @@
 module Canjica.EvalApply where
 
 import qualified Canjica.Function as Function
-import Canjica.State
 import Capability.Reader hiding ((:.:))
 import Capability.State hiding ((:.:))
 import Data.IORef
@@ -15,7 +14,7 @@ import Pipoquinha.Types.Data
 import Protolude hiding (MonadReader, ask, get, local, put, yield)
 import Text.Megaparsec (errorBundlePretty, parse)
 
-eval :: (HasState "table" VarTable m, HasReader "localScope" VarTable m, MonadIO m) => Atom -> m Atom
+eval :: (HasReader "environment" Environment m, MonadIO m) => Atom -> m Atom
 eval atom =
   case atom of
     n@(Number _) -> return n
@@ -26,39 +25,59 @@ eval atom =
     s@(Str _) -> return s
     b@(BuiltIn _) -> return b
     Symbol name -> do
-      localScope <- ask @"localScope"
-      table <- get @"table"
-      return . fromMaybe (Error $ "Undefined variable: " <> name) . Map.lookup name . Map.union localScope $ table
+      environment <- ask @"environment"
+      liftIO . fmap (fromMaybe (Error $ "Undefined variable: " <> name)) . getValue name $ environment
     Pair (List l) -> apply l
     Pair (_ :.: _) -> return $ Error "Cannot apply dotted pair"
     Pair _ -> return $ Pair Nil
 
-batchEval :: (HasState "table" VarTable m, HasReader "localScope" VarTable m, MonadIO m) => [Atom] -> m [Atom]
+batchEval :: (HasReader "environment" Environment m, MonadIO m) => [Atom] -> m [Atom]
 batchEval = traverse eval
 
-apply :: (HasState "table" VarTable m, HasReader "localScope" VarTable m, MonadIO m) => [Atom] -> m Atom
+apply :: (HasReader "environment" Environment m, MonadIO m) => [Atom] -> m Atom
 
 apply [] = return $ Pair Nil
 
 apply (BuiltIn Add : as) =
   batchEval as <&> foldr add (Number 0)
 
+apply [BuiltIn Negate, atom] =
+  eval atom
+  >>= \case
+    Number x -> return . Number . negate $ x
+    e@(Error _) -> return e
+    _ -> return . Error $ "Invalid parameter for 'negate': expecting a number"
+
 apply (BuiltIn Mul : as) =
   batchEval as <&> foldr mul (Number 1)
 
+apply [BuiltIn Invert, atom] =
+  eval atom
+  >>= \case
+    Number x -> return . Number $ denominator x % numerator x
+    e@(Error _) -> return e
+    _ -> return . Error $ "Invalid parameter for 'invert': expecting a number"
+
+apply [BuiltIn Numerator, atom] =
+  eval atom
+  >>= \case
+    Number x -> return . Number $ numerator x % 1
+    e@(Error _) -> return e
+    _ -> return . Error $ "Invalid parameter for 'numerator': expecting a number"
+
 apply [BuiltIn Def, Symbol name, atom] = do
   evaluatedAtom <- eval atom
-  table <- get @"table"
-  put @"table" (Map.insert name evaluatedAtom table)
+  environment <- ask @"environment"
+  liftIO (setValue name evaluatedAtom environment)
   return (Symbol name)
 
 apply (BuiltIn Defn : Symbol name : rest) = do
-  scope <- ask @"localScope"
-  case Function.create scope rest of
+  environment <- ask @"environment"
+  case Function.create environment rest of
     Left e -> return $ Error e
     Right f -> do
-      table <- get @"table"
-      put @"table" (Map.insert name (Function f) table)
+      environment <- ask @"environment"
+      liftIO (setValue name (Function f) environment)
       return $ Symbol name
 
 apply [BuiltIn If, predicate, consequent, alternative] =
@@ -68,14 +87,21 @@ apply [BuiltIn If, predicate, consequent, alternative] =
       Bool False -> eval alternative
       _ -> eval consequent
 
+apply [BuiltIn Not, value] =
+  eval value
+    >>= \case
+      e@(Error _) -> return e
+      Bool False -> return . Bool $ True
+      _ -> return . Bool $ False
+
 apply (BuiltIn Print : rest) =
   batchEval rest
     >>= putStr . unwords . map show
     >> return (Pair Nil)
 
 apply (BuiltIn Fn : rest) =
-  ask @"localScope"
-    >>= \scope -> return $ case Function.create scope rest of
+  ask @"environment"
+    >>= \environment -> return $ case Function.create environment rest of
       Left e -> Error e
       Right f -> Function f
 
@@ -125,6 +151,17 @@ apply [BuiltIn Cdr, atom] =
       Pair (_ :.: x) -> return x
       _ -> return $ Error "Cdr can only be applied to pairs"
 
+apply [BuiltIn Set, Symbol name, atom] = do
+  evaluatedAtom <- eval atom
+  environment <- ask @"environment"
+  varEnv <- liftIO (getVariableEnvironment name environment)
+  case varEnv of
+    Nothing -> do
+      return . Error $ "Cannot set! on undefined variable: " <> name
+    Just varEnv -> do
+      liftIO (setValue name evaluatedAtom varEnv)
+      return (Symbol name)
+
 apply (BuiltIn _ : _) =
   return $ Error "Not implemented yet"
 
@@ -136,8 +173,11 @@ apply (Function fn : as) = do
   evaluatedArguments <- batchEval as
   case Function.proceed evaluatedArguments fn of
     Left e -> return $ Error e
-    Right (newScope, vars) ->
-      local @"localScope" (Map.union newScope) (eval vars)
+    Right (newScope, environment, vars) -> do
+      table <- liftIO . newIORef $ newScope
+      let
+        newEnvironment = Local { table, parent = environment }
+      local @"environment" (const newEnvironment) (eval vars)
 
 apply (Macro _ : _) =
   return $ Error "Macros are not implemented yet"
