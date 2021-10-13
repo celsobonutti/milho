@@ -1,4 +1,7 @@
-module Pipoquinha.Parser where
+module Pipoquinha.Parser
+  ( sExpLine
+  , sExpFile
+  ) where
 
 import           Control.Monad.Combinators.NonEmpty
                                                 ( endBy1 )
@@ -6,8 +9,13 @@ import           Control.Monad.Fail             ( fail )
 import           Data.List.NonEmpty
 import           Data.Text                      ( Text )
 import           Data.Void
-import           Pipoquinha.Types.Data
-import           Protolude               hiding ( many
+import qualified Pipoquinha.BuiltIn            as BuiltIn
+import           Pipoquinha.BuiltIn
+import qualified Pipoquinha.SExp               as SExp
+import           Pipoquinha.SExp
+import           Protolude               hiding ( bool
+                                                , list
+                                                , many
                                                 , some
                                                 , try
                                                 )
@@ -17,10 +25,7 @@ import qualified Text.Megaparsec.Char.Lexer    as L
 
 type Parser = Parsec Void Text
 
-test :: Parser Text
-test = try $ string "memes"
-
-builtIn :: Parser BuiltIn
+builtIn :: Parser BuiltIn.T
 builtIn =
   string ".__"
     *>  try
@@ -54,8 +59,8 @@ builtIn =
           )
     <?> "built-in"
 
-pNumber :: Parser Rational
-pNumber =
+number :: Parser Rational
+number =
   L.signed
       (return ())
       (do
@@ -68,8 +73,8 @@ pNumber =
       )
     <?> "number"
 
-pBool :: Parser Bool
-pBool =
+bool :: Parser Bool
+bool =
   choice
       [ True <$ string "True"
       , False <$ string "False"
@@ -78,16 +83,16 @@ pBool =
       ]
     <?> "boolean"
 
-pString :: Parser Text
-pString =
+str :: Parser Text
+str =
   toS <$> between (char '\"') (char '\"') (many $ satisfy (/= '"')) <?> "string"
 
-pPair :: Parser Pair
-pPair = do
+pair :: Parser SExp.Pair
+pair = do
   _    <- char '(' *> space
-  head <- pAtom `endBy1` space1
+  head <- sExp `endBy1` space1
   _    <- char '.' *> space1
-  tail <- pAtom
+  tail <- sExp
   _    <- char ')' *> space
   return (make head tail) <?> "pair"
  where
@@ -95,17 +100,17 @@ pPair = do
   make (x :| xs) y = x ::: make (fromList xs) y
 
 
-pList :: Parser [Atom]
-pList =
-  between (char '(') (char ')') (space *> pAtom `sepBy` space1 <* space)
+list :: Parser [SExp.T]
+list =
+  between (char '(') (char ')') (space *> sExp `sepBy` space1 <* space)
     <?> "list"
 
-pQuotedAtom :: Parser Atom
-pQuotedAtom =
+quotedSExp :: Parser SExp.T
+quotedSExp =
   (do
-      _ <- char '\''
-      a <- pAtom
-      return (Pair (List [BuiltIn Quote, a]))
+      _          <- char '\''
+      expression <- sExp
+      return (Pair (List [BuiltIn Quote, expression]))
     )
     <?> "quote"
 
@@ -121,23 +126,23 @@ pSymbol = do
   rest      <- many $ satisfy (`notElem` invalidSymbolChars)
   return (toS (firstChar : rest))
 
-pAtom :: Parser Atom
-pAtom =
+sExp :: Parser SExp.T
+sExp =
   choice
-      [ Pair Nil <$ string "Nil"
-      , Bool <$> pBool
-      , try (Number <$> pNumber)
+      [ SExp.Pair Nil <$ string "Nil"
+      , Bool <$> bool
+      , try (Number <$> number)
       , Symbol <$> pSymbol
-      , Str <$> pString
+      , Str <$> str
       , BuiltIn <$> builtIn
-      , try (Pair <$> pPair)
-      , Pair . List <$> pList
-      , pQuotedAtom
+      , try (Pair <$> pair)
+      , Pair . List <$> list
+      , quotedSExp
       ]
     <?> "atom"
 
-pAtomLine :: Parser Atom
-pAtomLine = pAtom <* eof
+sExpLine :: Parser SExp.T
+sExpLine = sExp <* eof
 
-pAtomFile :: Parser [Atom]
-pAtomFile = between space space (pAtom `sepBy` space1) <* eof
+sExpFile :: Parser [SExp.T]
+sExpFile = between space space (sExp `sepBy` space1) <* eof
