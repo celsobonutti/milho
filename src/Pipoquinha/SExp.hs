@@ -2,6 +2,7 @@ module Pipoquinha.SExp where
 
 import           GHC.Show                       ( Show(..) )
 import qualified Pipoquinha.BuiltIn            as BuiltIn
+import qualified Pipoquinha.Environment        as Environment
 import           Pipoquinha.Function     hiding ( T )
 import qualified Pipoquinha.Function           as Function
 import           Protolude               hiding ( show )
@@ -40,12 +41,16 @@ instance Show Pair where
   show (x ::: xs ) = show x ++ " " ++ show xs
   show (x :.: y  ) = show x ++ " . " ++ show y
 
+type Environment = Environment.Table T
+
+type Function = Function.T T
+
 data T
-  = Function (Function.T T)
+  = Function Function
   | Bool Bool
   | Error Text
   | Symbol Text
-  | Macro (Function.T T)
+  | Macro Function
   | Str Text
   | BuiltIn BuiltIn.T
   | Number Rational
@@ -64,3 +69,7 @@ instance Show T where
   show (Number n)
     | denominator n == 1 = show $ numerator n
     | otherwise          = show (numerator n) ++ "/" ++ show (denominator n)
+
+isSymbol :: T -> Bool
+isSymbol (Symbol _) = True
+isSymbol _          = False

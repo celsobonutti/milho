@@ -14,8 +14,7 @@ import           Data.Text                      ( Text
                                                 , strip
                                                 )
 import           Data.Text.Encoding             ( decodeUtf8 )
-import           Pipoquinha.Parser
-import           Pipoquinha.Types.Data
+import qualified Pipoquinha.Parser as Parser
 import           Prelude                        ( IO )
 import           Protolude
 import           System.IO                      ( BufferMode(NoBuffering)
@@ -46,7 +45,7 @@ run
   => m ()
 run = do
   input <- liftIO getLine
-  case parse pAtomLine mempty input of
+  case parse Parser.sExpLine mempty input of
     Left  bundle -> print . Error . toS . errorBundlePretty $ bundle
     Right atom   -> do
       atom <- eval atom
@@ -54,4 +53,4 @@ run = do
 
 parseFile :: ByteString -> Either [Char] [Atom]
 parseFile =
-  first errorBundlePretty . parse pAtomFile mempty . strip . decodeUtf8
+  first errorBundlePretty . parse Parser.sExpFile mempty . strip . decodeUtf8

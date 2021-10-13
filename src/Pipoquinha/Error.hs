@@ -6,6 +6,16 @@ import           Protolude               hiding ( show )
 data T
   = UndefinedVariable Text
   | TypeMismatch
+  | NestedMultiArityFunction
+  | MultipleVariadicFunction
+  | NotListOfSymbols
+  | RepeatedSymbol
+  | MisplacedVariadic
+  | InvalidFunctionBody
+  | OverlappingBodies
+  | WrongNumberOfArguments Int Int
+  | NotEnoughArguments Int Int
+
     deriving Eq
 
 instance Exception T

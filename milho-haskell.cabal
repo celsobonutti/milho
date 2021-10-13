@@ -33,9 +33,13 @@ library
   exposed-modules:
       Canjica.EvalApply
       Canjica.Function
+      Pipoquinha.BuiltIn
+      Pipoquinha.Environment
+      Pipoquinha.Error
+      Pipoquinha.Function
       Pipoquinha.Parser
-      Pipoquinha.Types.Data
-      Pipoquinha.Types.Pair
+      Pipoquinha.SExp
+      Pipoquinha.VarTable
   other-modules:
       Paths_milho_haskell
   hs-source-dirs:
@@ -51,6 +55,10 @@ library
       FlexibleContexts
       TypeApplications
       DuplicateRecordFields
+      LambdaCase
+      PatternSynonyms
+      ViewPatterns
+      ConstraintKinds
   build-depends:
       base >=4.7 && <5
     , bytestring
@@ -64,7 +72,7 @@ library
     , text
     , transformers
   if flag(incomplete-error)
-    ghc-options: -Werror=incomplete-patterns -Werror=missing-fields -Werror=missing-methods
+    ghc-options: -Werror=missing-fields -Werror=missing-methods
   default-language: Haskell2010
 
 executable milho-haskell-exe
@@ -84,6 +92,10 @@ executable milho-haskell-exe
       FlexibleContexts
       TypeApplications
       DuplicateRecordFields
+      LambdaCase
+      PatternSynonyms
+      ViewPatterns
+      ConstraintKinds
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
@@ -99,7 +111,7 @@ executable milho-haskell-exe
     , text
     , transformers
   if flag(incomplete-error)
-    ghc-options: -Werror=incomplete-patterns -Werror=missing-fields -Werror=missing-methods
+    ghc-options: -Werror=missing-fields -Werror=missing-methods
   default-language: Haskell2010
 
 test-suite milho-haskell-test
@@ -120,6 +132,10 @@ test-suite milho-haskell-test
       FlexibleContexts
       TypeApplications
       DuplicateRecordFields
+      LambdaCase
+      PatternSynonyms
+      ViewPatterns
+      ConstraintKinds
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
@@ -135,5 +151,5 @@ test-suite milho-haskell-test
     , text
     , transformers
   if flag(incomplete-error)
-    ghc-options: -Werror=incomplete-patterns -Werror=missing-fields -Werror=missing-methods
+    ghc-options: -Werror=missing-fields -Werror=missing-methods
   default-language: Haskell2010

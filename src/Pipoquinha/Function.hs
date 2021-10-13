@@ -16,7 +16,7 @@ data Simple sexp = SF
 data Variadic sexp = VF
   { parameters  :: Seq Text
   , body        :: sexp
-  , environment :: Int
+  , environment :: Environment.Table sexp
   }
   deriving Eq
 

@@ -44,6 +44,10 @@ default-extensions:
   - FlexibleContexts
   - TypeApplications
   - DuplicateRecordFields
+  - LambdaCase
+  - PatternSynonyms
+  - ViewPatterns
+  - ConstraintKinds
 
 library:
   source-dirs: src
@@ -73,7 +77,6 @@ tests:
 when:
   condition: flag(incomplete-error)
   ghc-options:
-    - -Werror=incomplete-patterns
     - -Werror=missing-fields
     - -Werror=missing-methods
 
