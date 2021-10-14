@@ -7,7 +7,6 @@ import           Control.Monad.Combinators.NonEmpty
                                                 ( endBy1 )
 import           Control.Monad.Fail             ( fail )
 import           Data.List.NonEmpty
-import           Data.Text                      ( Text )
 import           Data.Void
 import qualified Pipoquinha.BuiltIn            as BuiltIn
 import           Pipoquinha.BuiltIn

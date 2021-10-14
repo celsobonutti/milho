@@ -15,11 +15,15 @@ data T
   | OverlappingBodies
   | WrongNumberOfArguments Int Int
   | NotEnoughArguments Int Int
+  | NoCompatibleBodies
+  | ParserError Text
+  | CannotApply
+  | NotImplementedYet
 
-    deriving Eq
+    deriving (Eq, Ord)
 
 instance Exception T
 
 instance Show T where
-    show (UndefinedVariable name) = "Undefined variable: " <> toS name
-    show TypeMismatch             = "Type mismatch: expecting {}, found {}"
+  show (UndefinedVariable name) = "Undefined variable: " <> toS name
+  show TypeMismatch             = "Type mismatch: expecting {}, found {}"

@@ -3,6 +3,7 @@ module Pipoquinha.SExp where
 import           GHC.Show                       ( Show(..) )
 import qualified Pipoquinha.BuiltIn            as BuiltIn
 import qualified Pipoquinha.Environment        as Environment
+import qualified Pipoquinha.Error              as Error
 import           Pipoquinha.Function     hiding ( T )
 import qualified Pipoquinha.Function           as Function
 import           Protolude               hiding ( show )
@@ -41,14 +42,14 @@ instance Show Pair where
   show (x ::: xs ) = show x ++ " " ++ show xs
   show (x :.: y  ) = show x ++ " . " ++ show y
 
-type Environment = Environment.Table T
+type Environment = Environment.TableRef T
 
 type Function = Function.T T
 
 data T
   = Function Function
   | Bool Bool
-  | Error Text
+  | Error Error.T
   | Symbol Text
   | Macro Function
   | Str Text
@@ -60,7 +61,7 @@ data T
 instance Show T where
   show (Bool     b) = show b
   show (Symbol   t) = toS $ "#" <> t
-  show (Error    e) = toS $ "Error: " <> e
+  show (Error    e) = toS $ "Error: " <> show e
   show (Function f) = "fn#" <> show f
   show (Macro    m) = "macro#" <> show m
   show (Str      s) = toS s

@@ -9,14 +9,14 @@ import           Protolude               hiding ( show )
 data Simple sexp = SF
   { parameters  :: Seq Text
   , body        :: sexp
-  , environment :: Environment.Table sexp
+  , environment :: Environment.TableRef sexp
   }
   deriving Eq
 
 data Variadic sexp = VF
   { parameters  :: Seq Text
   , body        :: sexp
-  , environment :: Environment.Table sexp
+  , environment :: Environment.TableRef sexp
   }
   deriving Eq
 

@@ -31,9 +31,9 @@ flag incomplete-error
 
 library
   exposed-modules:
-      Canjica.Environment
       Canjica.EvalApply
       Canjica.Function
+      Canjica.Number
       Pipoquinha.BuiltIn
       Pipoquinha.Environment
       Pipoquinha.Error
@@ -68,6 +68,7 @@ library
     , megaparsec >=9.2.0 && <10.0
     , parser-combinators >=1.3.0 && <2.0
     , protolude >=0.3.0 && <0.4.0
+    , text >=1.2.4.1 && <1.3
   if flag(incomplete-error)
     ghc-options: -Werror=missing-fields -Werror=missing-methods
   default-language: Haskell2010
@@ -103,6 +104,7 @@ executable milho-haskell-exe
     , milho-haskell
     , parser-combinators >=1.3.0 && <2.0
     , protolude >=0.3.0 && <0.4.0
+    , text >=1.2.4.1 && <1.3
   if flag(incomplete-error)
     ghc-options: -Werror=missing-fields -Werror=missing-methods
   default-language: Haskell2010
@@ -139,6 +141,7 @@ test-suite milho-haskell-test
     , milho-haskell
     , parser-combinators >=1.3.0 && <2.0
     , protolude >=0.3.0 && <0.4.0
+    , text >=1.2.4.1 && <1.3
   if flag(incomplete-error)
     ghc-options: -Werror=missing-fields -Werror=missing-methods
   default-language: Haskell2010

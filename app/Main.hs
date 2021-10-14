@@ -5,25 +5,27 @@ module Main where
 import           Canjica.EvalApply
 import           Capability.Reader
 import           Capability.State
-import           Data.ByteString                ( ByteString )
-import           Data.ByteString.Char8          ( split )
+import           Capability.Error
 import           Data.FileEmbed
 import           Data.IORef
+import           Data.Text (strip)
 import qualified Data.Map                      as Map
-import           Data.Text                      ( Text
-                                                , strip
-                                                )
-import           Data.Text.Encoding             ( decodeUtf8 )
+import           Pipoquinha.Error (T (ParserError))
 import qualified Pipoquinha.Parser as Parser
+import           Pipoquinha.Environment ( StateCapable
+                                        , ReaderCapable
+                                        , CatchCapable
+                                        )
+import qualified Pipoquinha.Environment as Environment
+import qualified Pipoquinha.SExp as SExp
+import           Pipoquinha.SExp (T (Error)) 
 import           Prelude                        ( IO )
-import           Protolude
+import           Protolude                      hiding (catch)
 import           System.IO                      ( BufferMode(NoBuffering)
                                                 , hSetBuffering
                                                 , stdout
                                                 )
 import           Text.Megaparsec         hiding ( State )
-
-type MyState = StateT VarTable IO [Char]
 
 basicOps :: ByteString
 basicOps = foldr ((<>) . snd) "" $(embedDir "std")
@@ -33,24 +35,29 @@ main = do
   hSetBuffering stdout NoBuffering
   case parseFile basicOps of
     Left  e        -> putStrLn e
-    Right builtIns -> do
-      table <- newIORef Map.empty
+    Right builtIns -> do 
       let
-        environment = Global table
-      mapM_ (\atom -> runM (eval atom) (Ctx environment)) builtIns
-      forever $ runM run (Ctx environment)
+        table = Environment.Table { variables = Map.empty
+                                  , parent = Nothing
+                                  }
+      tableRef <- newIORef table
+      let environment = Environment.T { table = tableRef }
+      mapM_ (\atom -> Environment.runM (eval atom) environment) builtIns
+      forever $ Environment.runM run environment
 
 run
-  :: (HasReader "environment" Environment m, MonadIO m)
+  :: (StateCapable SExp.T m, ReaderCapable SExp.T m, CatchCapable m)
   => m ()
 run = do
   input <- liftIO getLine
   case parse Parser.sExpLine mempty input of
-    Left  bundle -> print . Error . toS . errorBundlePretty $ bundle
+    Left  bundle -> print . Error . ParserError . toS . errorBundlePretty $ bundle
     Right atom   -> do
-      atom <- eval atom
+      atom <- catch @"runtimeError"
+              (eval atom)
+              (return . Error)
       print atom
 
-parseFile :: ByteString -> Either [Char] [Atom]
+parseFile :: ByteString -> Either [Char] [SExp.T]
 parseFile =
   first errorBundlePretty . parse Parser.sExpFile mempty . strip . decodeUtf8

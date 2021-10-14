@@ -50,24 +50,37 @@ newtype M sexp a = M {runM :: T sexp -> IO a}
     , HasCatch "runtimeError" Error.T
     ) via MonadUnliftIO Error.T (ReaderT (T sexp) IO)
 
+  deriving
+    ( HasSource "tableState" (Table sexp)
+    , HasSink   "tableState" (Table sexp)
+    , HasState  "tableState" (Table sexp)
+    ) via ReaderIORef (Rename "table" (Field "table" "environment" (MonadReader (ReaderT (T sexp) IO))))
+
 type ReaderCapable sexp m = (HasReader "table" (TableRef sexp) m, MonadIO m)
+
+type StateCapable sexp m = (HasState "tableState" (Table sexp) m, MonadIO m)
 
 type ThrowCapable m = HasThrow "runtimeError" Error.T m
 
-insertValue :: ReaderCapable sexp m => Text -> sexp -> m ()
+type CatchCapable m = HasCatch "runtimeError" Error.T m
+
+insertValue :: StateCapable sexp m => Text -> sexp -> m ()
 insertValue key value = do
   valueRef <- liftIO $ newIORef value
-  table    <- ask @"table"
-  liftIO $ modifyIORef table (insert key valueRef)
+  modify' @"tableState" (insert key valueRef)
 
-getValue :: (ThrowCapable m, MonadIO m) => Text -> Table sexp -> m (IORef sexp)
-getValue key Table { variables, parent } = case Map.lookup key variables of
-  Just value -> return value
-  Nothing    -> case fmap readIORef parent of
-    Nothing          -> throw @"runtimeError" (Error.UndefinedVariable key)
-    Just parentTable -> liftIO parentTable >>= getValue key
+getValue
+  :: (ThrowCapable m, MonadIO m) => Text -> TableRef sexp -> m (IORef sexp)
+getValue key tableRef = do
+  Table { variables, parent } <- liftIO $ readIORef tableRef
+  case Map.lookup key variables of
+    Just value -> return value
+    Nothing    -> case parent of
+      Nothing          -> throw @"runtimeError" (Error.UndefinedVariable key)
+      Just parentTable -> getValue key parentTable
 
-setValue :: (ThrowCapable m, MonadIO m) => Text -> sexp -> Table sexp -> m ()
+setValue
+  :: (ThrowCapable m, MonadIO m) => Text -> sexp -> TableRef sexp -> m ()
 setValue key newValue table = do
   value <- getValue key table
   liftIO $ writeIORef value newValue

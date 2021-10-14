@@ -1,18 +1,34 @@
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module Canjica.EvalApply where
 
 import qualified Canjica.Function              as Function
+import           Canjica.Number
+import           Capability.Error        hiding ( (:.:) )
 import           Capability.Reader       hiding ( (:.:) )
 import           Capability.State        hiding ( (:.:) )
 import           Data.IORef
 import qualified Data.Map                      as Map
-import           Data.Text                      ( pack )
-import           Pipoquinha.Parser
+import           Pipoquinha.BuiltIn      hiding ( T )
+import qualified Pipoquinha.Environment        as Environment
+import           Pipoquinha.Environment         ( ReaderCapable
+                                                , StateCapable
+                                                , ThrowCapable
+                                                )
+import           Pipoquinha.Error               ( T
+                                                  ( CannotApply
+                                                  , NotImplementedYet
+                                                  , ParserError
+                                                  , TypeMismatch
+                                                  , WrongNumberOfArguments
+                                                  )
+                                                )
+import           Pipoquinha.Parser             as Parser
+import           Pipoquinha.SExp         hiding ( T )
+import qualified Pipoquinha.SExp               as SExp
 import           Protolude               hiding ( MonadReader
                                                 , ask
+                                                , asks
                                                 , get
+                                                , gets
                                                 , local
                                                 , put
                                                 , yield
@@ -21,7 +37,10 @@ import           Text.Megaparsec                ( errorBundlePretty
                                                 , parse
                                                 )
 
-eval :: (HasReader "environment" Environment m, MonadIO m) => Atom -> m Atom
+eval
+  :: (ReaderCapable SExp.T m, ThrowCapable m, StateCapable SExp.T m)
+  => SExp.T
+  -> m SExp.T
 eval atom = case atom of
   n@(Number   _) -> return n
   f@(Function _) -> return f
@@ -31,87 +50,81 @@ eval atom = case atom of
   s@(Str      _) -> return s
   b@(BuiltIn  _) -> return b
   Symbol name    -> do
-    environment <- ask @"environment"
-    liftIO
-      . fmap (fromMaybe (Error $ "Undefined variable: " <> name))
-      . getValue name
-      $ environment
+    join (asks @"table" (Environment.getValue name)) >>= liftIO . readIORef
   Pair (List l ) -> apply l
-  Pair (_ :.: _) -> return $ Error "Cannot apply dotted pair"
+  Pair (_ :.: _) -> throw @"runtimeError" CannotApply
   Pair _         -> return $ Pair Nil
 
 batchEval
-  :: (HasReader "environment" Environment m, MonadIO m) => [Atom] -> m [Atom]
+  :: (ReaderCapable SExp.T m, ThrowCapable m, StateCapable SExp.T m)
+  => [SExp.T]
+  -> m [SExp.T]
 batchEval = traverse eval
 
-apply :: (HasReader "environment" Environment m, MonadIO m) => [Atom] -> m Atom
+apply
+  :: (ReaderCapable SExp.T m, ThrowCapable m, StateCapable SExp.T m)
+  => [SExp.T]
+  -> m SExp.T
 
-apply []                     = return $ Pair Nil
+apply []                 = return $ Pair Nil
 
-apply (BuiltIn Add : as)     = batchEval as <&> foldr add (Number 0)
+apply (BuiltIn Add : as) = batchEval as
+  >>= foldl (\acc current -> acc >>= add current) (return $ Number 0)
+
+apply (BuiltIn Mul : as) = batchEval as
+  >>= foldl (\acc current -> acc >>= mul current) (return $ Number 1)
 
 apply [BuiltIn Negate, atom] = eval atom >>= \case
   Number x -> return . Number . negate $ x
-  e@(Error _) -> return e
-  _ -> return . Error $ "Invalid parameter for 'negate': expecting a number"
-
-apply (BuiltIn Mul : as)     = batchEval as <&> foldr mul (Number 1)
+  _        -> throw @"runtimeError" TypeMismatch
 
 apply [BuiltIn Invert, atom] = eval atom >>= \case
   Number x -> return . Number $ denominator x % numerator x
-  e@(Error _) -> return e
-  _ -> return . Error $ "Invalid parameter for 'invert': expecting a number"
+  _        -> throw @"runtimeError" TypeMismatch
 
 apply [BuiltIn Numerator, atom] = eval atom >>= \case
   Number x -> return . Number $ numerator x % 1
-  e@(Error _) -> return e
-  _ -> return . Error $ "Invalid parameter for 'numerator': expecting a number"
+  _        -> throw @"runtimeError" TypeMismatch
 
 apply [BuiltIn Def, Symbol name, atom] = do
-  evaluatedAtom <- eval atom
-  environment   <- ask @"environment"
-  liftIO (setValue name evaluatedAtom environment)
+  evaluatedSExp <- eval atom
+  environment   <- ask @"table"
+  Environment.insertValue name evaluatedSExp
   return (Symbol name)
 
 apply (BuiltIn Defn : Symbol name : rest) = do
-  environment <- ask @"environment"
-  case Function.create environment rest of
-    Left  e -> return $ Error e
-    Right f -> do
-      environment <- ask @"environment"
-      liftIO (setValue name (Function f) environment)
-      return $ Symbol name
+  environment <- ask @"table"
+  function    <- Function.make environment rest
+  Environment.insertValue name (Function function)
+  return $ Symbol name
 
 apply [BuiltIn If, predicate, consequent, alternative] =
   eval predicate >>= \case
-    e@(Error _) -> return e
-    Bool False  -> eval alternative
-    _           -> eval consequent
+    Bool False -> eval alternative
+    _          -> eval consequent
 
 apply [BuiltIn Not, value] = eval value >>= \case
-  e@(Error _) -> return e
-  Bool False  -> return . Bool $ True
-  _           -> return . Bool $ False
+  Bool False -> return . Bool $ True
+  _          -> return . Bool $ False
 
 apply (BuiltIn Print : rest) =
   batchEval rest >>= putStr . unwords . map show >> return (Pair Nil)
 
-apply (BuiltIn Fn : rest) = ask @"environment" >>= \environment ->
-  return $ case Function.create environment rest of
-    Left  e -> Error e
-    Right f -> Function f
+apply (BuiltIn Fn : rest) = do
+  environment <- ask @"table"
+  function    <- Function.make environment rest
+  return $ Function function
 
 apply (BuiltIn Eql : rest) = batchEval rest >>= \case
-  [] -> return
-    (Error "Wrong number of arguments for =. Expecting at least one, found 0")
+  []            -> throw @"runtimeError" (WrongNumberOfArguments 1 0)
   (base : rest) -> return (Bool $ (== base) `all` rest)
 
 apply [BuiltIn Loop, procedure] = forever (eval procedure)
 
 apply [BuiltIn Read]            = do
   input <- liftIO getLine
-  return $ case parse pAtomLine mempty input of
-    Left  e -> Error . pack . errorBundlePretty $ e
+  return $ case parse Parser.sExpLine mempty input of
+    Left  e -> Error . ParserError . toS . errorBundlePretty $ e
     Right a -> a
 
 apply [BuiltIn Eval , value]   = eval >=> eval $ value
@@ -129,55 +142,48 @@ apply [BuiltIn Car, atom] = eval atom >>= \case
   Pair Nil       -> return $ Pair Nil
   Pair (x ::: _) -> return x
   Pair (x :.: _) -> return x
-  _              -> return $ Error "Car can only be applied to pairs"
+  _              -> throw @"runtimeError" TypeMismatch
 
 apply [BuiltIn Cdr, atom] = eval atom >>= \case
   Pair Nil        -> return $ Pair Nil
   Pair (_ ::: xs) -> return $ Pair xs
   Pair (_ :.: x ) -> return x
-  _               -> return $ Error "Cdr can only be applied to pairs"
+  _               -> throw @"runtimeError" TypeMismatch
 
 apply [BuiltIn Set, Symbol name, atom] = do
-  evaluatedAtom <- eval atom
-  environment   <- ask @"environment"
-  varEnv        <- liftIO (getVariableEnvironment name environment)
-  case varEnv of
-    Nothing -> do
-      return . Error $ "Cannot set! on undefined variable: " <> name
-    Just varEnv -> do
-      liftIO (setValue name evaluatedAtom varEnv)
-      return (Symbol name)
+  evaluatedSExp <- eval atom
+  environment   <- ask @"table"
+  Environment.setValue name evaluatedSExp environment
+  return (Symbol name)
 
-apply (BuiltIn _    : _ ) = return $ Error "Not implemented yet"
+apply (BuiltIn _    : _ ) = return $ Error NotImplementedYet
 
 apply (s@(Symbol _) : as) = do
   operator <- eval s
   apply (operator : as)
 
 apply (Function fn : as) = do
-  evaluatedArguments <- batchEval as
-  case Function.proceed evaluatedArguments fn of
-    Left  e                             -> return $ Error e
-    Right (newScope, environment, vars) -> do
-      table <- liftIO . newIORef $ newScope
-      let newEnvironment = Local { table, parent = environment }
-      local @"environment" (const newEnvironment) (eval vars)
+  evaluatedArguments            <- batchEval as
+  (newScope, environment, vars) <- Function.proceed evaluatedArguments fn
+  let newEnvironment =
+        Environment.Table { variables = newScope, parent = Just environment }
+  environmentRef <- liftIO $ newIORef newEnvironment
+  local @"table" (const environmentRef) (eval vars)
 
-apply (Macro _        : _ ) = return $ Error "Macros are not implemented yet"
+apply (Macro _        : _ ) = throw @"runtimeError" NotImplementedYet
 
 apply (Pair  (List l) : as) = do
   operator <- apply l
   apply (operator : as)
 
-apply (Pair (_ :.: _) : _) =
-  return $ Error "Cannot apply dotted pair as an operator"
+apply (Pair   (_ :.: _) : _) = throw @"runtimeError" CannotApply
 
-apply (Pair   Nil  : _) = return $ Error "Cannot apply Nil as an operator"
+apply (Pair   Nil       : _) = throw @"runtimeError" CannotApply
 
-apply (Bool   _    : _) = return $ Error "Cannot apply boolean as an operator"
+apply (Bool   _         : _) = throw @"runtimeError" CannotApply
 
-apply (Str    _    : _) = return $ Error "Cannot apply string as an operator"
+apply (Str    _         : _) = throw @"runtimeError" CannotApply
 
-apply (Number _    : _) = return $ Error "Cannot apply number as an operator"
+apply (Number _         : _) = throw @"runtimeError" CannotApply
 
-apply (e@(Error _) : _) = return e
+apply (e@(Error _)      : _) = return e

@@ -9,7 +9,6 @@ import qualified Data.Map                      as Map
 import qualified Data.Sequence                 as Seq
 import           Data.Sequence                  ( Seq((:|>)) )
 import qualified Data.Set                      as Set
-import           Data.Text                      ( Text )
 import qualified Pipoquinha.Environment        as Environment
 import           Pipoquinha.Environment         ( ThrowCapable )
 import qualified Pipoquinha.Error              as Error
@@ -30,40 +29,34 @@ data FunctionParameters
   | VariadicP (Seq Text)
   | Invalid ArgumentError
 
-make
-  :: Environment.ThrowCapable m
-  => Environment.Table SExp.T
-  -> [SExp.T]
-  -> m Function
+make :: Environment.ThrowCapable m => Environment -> [SExp.T] -> m Function
 make environment [validateParameters -> SimpleP parameters, body] =
   return $ Simple SF { body, parameters, environment }
 
 make environment [validateParameters -> VariadicP parameters, body] =
   return $ Variadic VF { body, parameters, environment }
 
-make environment (fmap (fmap splitFunctions  . traverse (make environment)) . traverse fromSExpList -> Just (Right functions))
-  = case functions of
-    (_, _, multiArityFunction : _) ->
-      throw @"runtimeError" Error.NestedMultiArityFunction
+make environment parameters = case traverse fromSExpList parameters of
+  Nothing -> throw @"runtimeError" Error.InvalidFunctionBody
+  Just bodies ->
+    mapM (make environment) bodies
+      >>= \case
+            (_, _, multiArityFunction : _) ->
+              throw @"runtimeError" Error.NestedMultiArityFunction
 
-    (_, _ : _ : _, []) -> throw @"runtimeError" Error.MultipleVariadicFunction
+            (_, _ : _ : _, []) ->
+              throw @"runtimeError" Error.MultipleVariadicFunction
 
-    (simpleFunctions, head -> variadic, []) ->
-      let bodies =
-            Map.fromList
-              . map (\x@SF { parameters } -> (length parameters, x))
-              $ simpleFunctions
-      in  if Map.size bodies == length simpleFunctions
-            then return $ MultiArity MAF { bodies, variadic }
-            else throw @"runtimeError" Error.OverlappingBodies
-
-make environment [validateParameters -> Invalid reason, body] =
-  throw @"runtimeError" $ case reason of
-    NotListOfSymbols  -> Error.NotListOfSymbols
-    RepeatedSymbol    -> Error.RepeatedSymbol
-    MisplacedVariadic -> Error.MisplacedVariadic
-
-make _ _ = throw @"runtimeError" Error.InvalidFunctionBody
+            (simpleFunctions, variadic, []) ->
+              let bodies =
+                    Map.fromList
+                      . map (\x@SF { parameters } -> (length parameters, x))
+                      $ simpleFunctions
+              in  if Map.size bodies == length simpleFunctions
+                    then return
+                      $ MultiArity MAF { bodies, variadic = head variadic }
+                    else throw @"runtimeError" Error.OverlappingBodies
+      .   splitFunctions
 
 splitFunctions
   :: [Function]
@@ -85,7 +78,6 @@ fromSExpList (Pair (List f@[Pair (List _), _])) = Just f
 fromSExpList _ = Nothing
 
 validateParameters :: SExp.T -> FunctionParameters
-
 validateParameters (Pair (List atoms))
   | not onlyHasSymbols = Invalid NotListOfSymbols
   | not isUniq = Invalid RepeatedSymbol
@@ -98,33 +90,47 @@ validateParameters (Pair (List atoms))
   isUniq         = (length === Set.size . Set.fromList) atoms
   extractName (Symbol s) = Just s
   extractName _          = Nothing
-
 validateParameters _ = Invalid NotListOfSymbols
 
 proceed
-  :: ThrowCapable m
+  :: (ThrowCapable m, MonadIO m)
   => [SExp.T]
   -> Function
-  -> m (Map Text SExp.T, Environment, SExp.T)
+  -> m (Map Text (IORef SExp.T), Environment, SExp.T)
 
 proceed arguments (Simple SF { body, parameters, environment })
-  | length arguments == length parameters = return
-    (localTable, environment, body)
+  | length arguments == length parameters = do
+    arguments <- liftIO $ mapM newIORef arguments
+    let newTable = Map.fromList (zip (toList parameters) arguments)
+    return (newTable, environment, body)
   | otherwise = throw @"runtimeError"
     (Error.WrongNumberOfArguments (length arguments) (length parameters))
-  where localTable = Map.fromList (zip (toList parameters) arguments)
 
 proceed arguments (Variadic VF { body, parameters, environment })
-  | length arguments >= length parameters = return
-    (localTable, environment, body)
+  | length arguments >= length parameters = do
+    let (nonVariadic, rest) = splitAt (length parameters) arguments
+
+    nonVariadicArguments <- liftIO $ mapM newIORef nonVariadic
+    let table = Map.fromList $ zip (toList parameters) nonVariadicArguments
+
+    variadicArguments <- liftIO . newIORef $ Pair (List rest)
+    let newTable = Map.insert "+rest" variadicArguments table
+
+    return (newTable, environment, body)
   | otherwise = throw @"runtimeError"
     (Error.NotEnoughArguments (length arguments) (length parameters))
- where
-  (nonVariadic, rest) = splitAt (length parameters) arguments
-  localTable          = Map.fromList (zip (toList parameters) nonVariadic)
-  variadicTable       = Map.insert "+rest" (Pair (List rest)) localTable
 
-proceed arguments (MultiArity MAF { bodies, variadic }) = _
+proceed arguments (MultiArity MAF { bodies, variadic }) =
+  case find compatible bodies of
+    Just f  -> proceed arguments (Simple f)
+    Nothing -> case variadic of
+      Just f@VF { parameters } | length arguments >= length parameters ->
+        proceed arguments (Variadic f)
+      _ -> throw @"runtimeError" Error.NoCompatibleBodies
+ where
+  compatible :: Function.Simple SExp.T -> Bool
+  compatible SF { parameters } = length parameters == length arguments
+
 
 infixr 9 ===
 (===) :: Eq b => (a -> b) -> (a -> b) -> a -> Bool
