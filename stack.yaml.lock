@@ -5,16 +5,43 @@
 
 packages:
 - completed:
-    hackage: capability-0.4.0.0@sha256:d86d85a1691ef0165c77c47ea72eac75c99d21fb82947efe8b2f758991cf1837,3345
+    hackage: capability-0.5.0.0@sha256:49c91f947e7ddee2d9340d46f0d01db118cd50bcecec583fd5941557e39d7a79,3147
     pantry-tree:
-      size: 2581
-      sha256: 21bf502c888f32bd6aabeeef05bc2a362cf72bf694b432a0eda9431ac4cfea9b
+      size: 2504
+      sha256: 9e4316de1120b077326bf5adf55a4890d8dad3af1e3d4891e85da1f46d0b12b8
   original:
-    hackage: capability-0.4.0.0@sha256:d86d85a1691ef0165c77c47ea72eac75c99d21fb82947efe8b2f758991cf1837,3345
+    hackage: capability-0.5.0.0@sha256:49c91f947e7ddee2d9340d46f0d01db118cd50bcecec583fd5941557e39d7a79,3147
+- completed:
+    hackage: file-embed-0.0.14.0@sha256:41df92c8252b33957333fba5b4d3bfae2c6a35fc2582196fdb6a3618b41f5aaf,1426
+    pantry-tree:
+      size: 477
+      sha256: c9741a26cdd9749daf72f659bf2472ee920b7ba99542d3c714edda95279597ba
+  original:
+    hackage: file-embed-0.0.14.0@sha256:41df92c8252b33957333fba5b4d3bfae2c6a35fc2582196fdb6a3618b41f5aaf,1426
+- completed:
+    hackage: hspec-2.8.3@sha256:43a42e23994a6c61a7adead7e8a412016680234f5a14a157f68c020871e59534,1709
+    pantry-tree:
+      size: 583
+      sha256: 44d06a4d76211f29d1ef5de004f363448cdfe65d897bc102ad3218b3fc6b147b
+  original:
+    hackage: hspec-2.8.3@sha256:43a42e23994a6c61a7adead7e8a412016680234f5a14a157f68c020871e59534,1709
+- completed:
+    hackage: megaparsec-9.2.0@sha256:0c272aa13b9f663dbd7b74ef81e9b1f9f05cafde50f5362ce87ffd4913046e0b,3213
+    pantry-tree:
+      size: 1518
+      sha256: 7ca5da73a72d6242375e6bf16f6868e16f5f7f02dd27a0ff12cf7a9422cf2c71
+  original:
+    hackage: megaparsec-9.2.0@sha256:0c272aa13b9f663dbd7b74ef81e9b1f9f05cafde50f5362ce87ffd4913046e0b,3213
+- completed:
+    hackage: parser-combinators-1.3.0@sha256:edd54ba56cbae8fadbcceebcfef31b2c70a835e92e5eda41151b939c40647281,1570
+    pantry-tree:
+      size: 795
+      sha256: 0754c8d3f213156877f8085da2ad74433167a6c30272b8b64119a2628bd7ade0
+  original:
+    hackage: parser-combinators-1.3.0@sha256:edd54ba56cbae8fadbcceebcfef31b2c70a835e92e5eda41151b939c40647281,1570
 snapshots:
 - completed:
-    size: 567241
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/17/10.yaml
-    sha256: 321b3b9f0c7f76994b39e0dabafdc76478274b4ff74cc5e43d410897a335ad3b
-  original:
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/17/10.yaml
+    size: 586268
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/13.yaml
+    sha256: d9e658a22cfe8d87a64fdf219885f942fef5fe2bcb156a9800174911c5da2443
+  original: lts-18.13
