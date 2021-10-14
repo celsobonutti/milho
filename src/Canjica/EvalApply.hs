@@ -13,17 +13,11 @@ import           Pipoquinha.Environment         ( ReaderCapable
                                                 , StateCapable
                                                 , ThrowCapable
                                                 )
-import           Pipoquinha.Error               ( T
-                                                  ( CannotApply
-                                                  , NotImplementedYet
-                                                  , ParserError
-                                                  , TypeMismatch
-                                                  , WrongNumberOfArguments
-                                                  )
-                                                )
+import           Pipoquinha.Error               ( T(..) )
 import           Pipoquinha.Parser             as Parser
 import           Pipoquinha.SExp         hiding ( T )
 import qualified Pipoquinha.SExp               as SExp
+import qualified Pipoquinha.Type               as Type
 import           Protolude               hiding ( MonadReader
                                                 , ask
                                                 , asks
@@ -52,7 +46,7 @@ eval atom = case atom of
   Symbol name    -> do
     join (asks @"table" (Environment.getValue name)) >>= liftIO . readIORef
   Pair (List l ) -> apply l
-  Pair (_ :.: _) -> throw @"runtimeError" CannotApply
+  Pair (_ :.: _) -> throw @"runtimeError" $ CannotApply Type.Pair
   Pair _         -> return $ Pair Nil
 
 batchEval
@@ -76,15 +70,21 @@ apply (BuiltIn Mul : as) = batchEval as
 
 apply [BuiltIn Negate, atom] = eval atom >>= \case
   Number x -> return . Number . negate $ x
-  _        -> throw @"runtimeError" TypeMismatch
+  value    -> throw @"runtimeError" TypeMismatch { expected = Type.Number
+                                                 , found    = SExp.toType value
+                                                 }
 
 apply [BuiltIn Invert, atom] = eval atom >>= \case
   Number x -> return . Number $ denominator x % numerator x
-  _        -> throw @"runtimeError" TypeMismatch
+  value    -> throw @"runtimeError" TypeMismatch { expected = Type.Number
+                                                 , found    = SExp.toType value
+                                                 }
 
 apply [BuiltIn Numerator, atom] = eval atom >>= \case
   Number x -> return . Number $ numerator x % 1
-  _        -> throw @"runtimeError" TypeMismatch
+  value    -> throw @"runtimeError" TypeMismatch { expected = Type.Number
+                                                 , found    = SExp.toType value
+                                                 }
 
 apply [BuiltIn Def, Symbol name, atom] = do
   evaluatedSExp <- eval atom
@@ -142,13 +142,17 @@ apply [BuiltIn Car, atom] = eval atom >>= \case
   Pair Nil       -> return $ Pair Nil
   Pair (x ::: _) -> return x
   Pair (x :.: _) -> return x
-  _              -> throw @"runtimeError" TypeMismatch
+  value -> throw @"runtimeError" TypeMismatch { expected = Type.Pair
+                                              , found    = SExp.toType value
+                                              }
 
 apply [BuiltIn Cdr, atom] = eval atom >>= \case
   Pair Nil        -> return $ Pair Nil
   Pair (_ ::: xs) -> return $ Pair xs
   Pair (_ :.: x ) -> return x
-  _               -> throw @"runtimeError" TypeMismatch
+  value -> throw @"runtimeError" TypeMismatch { expected = Type.Pair
+                                              , found    = SExp.toType value
+                                              }
 
 apply [BuiltIn Set, Symbol name, atom] = do
   evaluatedSExp <- eval atom
@@ -176,14 +180,14 @@ apply (Pair  (List l) : as) = do
   operator <- apply l
   apply (operator : as)
 
-apply (Pair   (_ :.: _) : _) = throw @"runtimeError" CannotApply
+apply (Pair   (_ :.: _) : _) = throw @"runtimeError" $ CannotApply Type.Pair
 
-apply (Pair   Nil       : _) = throw @"runtimeError" CannotApply
+apply (Pair   Nil       : _) = throw @"runtimeError" $ CannotApply Type.Pair
 
-apply (Bool   _         : _) = throw @"runtimeError" CannotApply
+apply (Bool   _         : _) = throw @"runtimeError" $ CannotApply Type.Boolean
 
-apply (Str    _         : _) = throw @"runtimeError" CannotApply
+apply (Str    _         : _) = throw @"runtimeError" $ CannotApply Type.String
 
-apply (Number _         : _) = throw @"runtimeError" CannotApply
+apply (Number _         : _) = throw @"runtimeError" $ CannotApply Type.Number
 
 apply (e@(Error _)      : _) = return e

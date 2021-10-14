@@ -6,6 +6,7 @@ import qualified Pipoquinha.Environment        as Environment
 import qualified Pipoquinha.Error              as Error
 import           Pipoquinha.Function     hiding ( T )
 import qualified Pipoquinha.Function           as Function
+import qualified Pipoquinha.Type               as Type
 import           Protolude               hiding ( show )
 
 data Pair
@@ -74,3 +75,14 @@ instance Show T where
 isSymbol :: T -> Bool
 isSymbol (Symbol _) = True
 isSymbol _          = False
+
+toType :: T -> Type.T
+toType (Function _) = Type.Function
+toType (Bool     _) = Type.Boolean
+toType (Error    _) = Type.Error
+toType (Symbol   _) = Type.Symbol
+toType (Macro    _) = Type.Macro
+toType (Str      _) = Type.String
+toType (BuiltIn  _) = Type.BuiltIn
+toType (Number   _) = Type.Number
+toType (Pair     _) = Type.Pair

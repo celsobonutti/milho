@@ -42,6 +42,7 @@ main = do
                                   }
       tableRef <- newIORef table
       let environment = Environment.T { table = tableRef }
+      putStrLn ("Welcome to the 🌽 REPL!" :: Text)
       mapM_ (\atom -> Environment.runM (eval atom) environment) builtIns
       forever $ Environment.runM run environment
 
@@ -49,6 +50,7 @@ run
   :: (StateCapable SExp.T m, ReaderCapable SExp.T m, CatchCapable m)
   => m ()
 run = do
+  liftIO $ putStr ("🌽> " :: Text)
   input <- liftIO getLine
   case parse Parser.sExpLine mempty input of
     Left  bundle -> print . Error . ParserError . toS . errorBundlePretty $ bundle
@@ -58,6 +60,7 @@ run = do
               (return . Error)
       print atom
 
-parseFile :: ByteString -> Either [Char] [SExp.T]
+parseFile :: ByteString -> Either Text [SExp.T]
 parseFile =
-  first errorBundlePretty . parse Parser.sExpFile mempty . strip . decodeUtf8
+  first (toS . errorBundlePretty) . parse Parser.sExpFile mempty . strip . decodeUtf8
+  

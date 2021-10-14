@@ -40,6 +40,7 @@ library
       Pipoquinha.Function
       Pipoquinha.Parser
       Pipoquinha.SExp
+      Pipoquinha.Type
       Pipoquinha.VarTable
   other-modules:
       Paths_milho_haskell
