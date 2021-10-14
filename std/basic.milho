@@ -23,6 +23,8 @@
 (def quote .__quote)
 (def set! .__set)
 (def numerator .__numerator)
+(def or .__or)
+(def and .__and)
 
 (defn inspect (f)
     (let (y 0)

@@ -1,12 +1,13 @@
 module Canjica.EvalApply where
 
+import qualified Canjica.Boolean               as Boolean
 import qualified Canjica.Function              as Function
 import           Canjica.Function               ( functionArguments
                                                 , functionBody
                                                 , functionEnvironment
                                                 )
 import qualified Canjica.Let                   as Let
-import           Canjica.Number
+import qualified Canjica.Number                as Number
 import           Capability.Error        hiding ( (:.:) )
 import           Capability.Reader       hiding ( (:.:) )
 import           Capability.State        hiding ( (:.:) )
@@ -74,11 +75,10 @@ apply [] = return $ Pair Nil
 {- Number operations -}
 
 apply (BuiltIn Add : values) =
-  batchEval values <&> foldM add (Number 0) >>= throwIfError
-
+  batchEval values <&> foldM Number.add (Number 0) >>= throwIfError
 
 apply (BuiltIn Mul : values) =
-  batchEval values <&> foldM mul (Number 1) >>= throwIfError
+  batchEval values <&> foldM Number.mul (Number 1) >>= throwIfError
 
 apply [BuiltIn Negate, atom] = eval atom >>= \case
   Number x -> return . Number . negate $ x
@@ -123,6 +123,14 @@ apply (BuiltIn Not : arguments) =
                                                  , foundCount = length arguments
                                                  }
 
+apply (BuiltIn And : values) =
+  batchEval values <&> foldM Boolean.and (Bool True) >>= throwIfError
+
+apply (BuiltIn Or : values) =
+  batchEval values <&> foldM Boolean.or (Bool False) >>= throwIfError
+
+{- Value definition operations -}
+
 apply [BuiltIn Def, Symbol name, atom] = do
   evaluatedSExp <- eval atom
   environment   <- ask @"table"
@@ -148,6 +156,7 @@ apply (BuiltIn If : arguments) = throw @"runtimeError" $ WrongNumberOfArguments
   { expectedCount = 3
   , foundCount    = length arguments
   }
+
 apply (BuiltIn Print : rest) =
   batchEval rest >>= putStr . unwords . map show >> return (Pair Nil)
 

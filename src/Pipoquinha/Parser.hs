@@ -46,6 +46,8 @@ builtIn =
             , Loop <$ string "loop"
             , Do <$ string "do"
             , Not <$ string "not"
+            , And <$ string "and"
+            , Or <$ string "or"
             , Cons <$ string "cons"
             , MakeList <$ string "make-list"
             , Car <$ string "car"

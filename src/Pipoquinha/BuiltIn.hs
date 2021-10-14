@@ -20,6 +20,8 @@ data T
   | Loop
   | Do
   | Not
+  | And
+  | Or
   | Cons
   | MakeList
   | Car
