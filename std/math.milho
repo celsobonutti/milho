@@ -13,14 +13,4 @@
 (defn test (memes)
       (fn (bozzano)))
 
-(defn inspect (f)
-  ((fn (y)
-     (fn (z)
-       (if (= z 'retrieve)
-           y
-           (do
-             (set! y (+ 1 y))
-             (f z)))))
-   0))
-
 (defn add-one (x) (+ x 1))

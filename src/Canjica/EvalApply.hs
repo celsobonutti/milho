@@ -1,6 +1,7 @@
 module Canjica.EvalApply where
 
 import qualified Canjica.Function              as Function
+import           Canjica.Function               ( makeLetTable )
 import           Canjica.Number
 import           Capability.Error        hiding ( (:.:) )
 import           Capability.Reader       hiding ( (:.:) )
@@ -73,11 +74,20 @@ apply [BuiltIn Negate, atom] = eval atom >>= \case
   value    -> throw @"runtimeError" TypeMismatch { expected = Type.Number
                                                  , found    = SExp.toType value
                                                  }
+apply (BuiltIn Negate : arguments) =
+  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 1
+                                                 , foundCount = length arguments
+                                                 }
 
 apply [BuiltIn Invert, atom] = eval atom >>= \case
   Number x -> return . Number $ denominator x % numerator x
   value    -> throw @"runtimeError" TypeMismatch { expected = Type.Number
                                                  , found    = SExp.toType value
+                                                 }
+
+apply (BuiltIn Invert : arguments) =
+  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 1
+                                                 , foundCount = length arguments
                                                  }
 
 apply [BuiltIn Numerator, atom] = eval atom >>= \case
@@ -86,11 +96,18 @@ apply [BuiltIn Numerator, atom] = eval atom >>= \case
                                                  , found    = SExp.toType value
                                                  }
 
+apply (BuiltIn Numerator : arguments) =
+  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 1
+                                                 , foundCount = length arguments
+                                                 }
+
 apply [BuiltIn Def, Symbol name, atom] = do
   evaluatedSExp <- eval atom
   environment   <- ask @"table"
   Environment.insertValue name evaluatedSExp
   return (Symbol name)
+
+apply (BuiltIn Def : arguments) = throw @"runtimeError" $ MalformedDefinition
 
 apply (BuiltIn Defn : Symbol name : rest) = do
   environment <- ask @"table"
@@ -98,14 +115,26 @@ apply (BuiltIn Defn : Symbol name : rest) = do
   Environment.insertValue name (Function function)
   return $ Symbol name
 
+apply (BuiltIn Defn : arguments) = throw @"runtimeError" $ MalformedDefinition
+
 apply [BuiltIn If, predicate, consequent, alternative] =
   eval predicate >>= \case
     Bool False -> eval alternative
     _          -> eval consequent
 
+apply (BuiltIn If : arguments) = throw @"runtimeError" $ WrongNumberOfArguments
+  { expectedCount = 3
+  , foundCount    = length arguments
+  }
+
 apply [BuiltIn Not, value] = eval value >>= \case
   Bool False -> return . Bool $ True
   _          -> return . Bool $ False
+
+apply (BuiltIn Not : arguments) =
+  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 1
+                                                 , foundCount = length arguments
+                                                 }
 
 apply (BuiltIn Print : rest) =
   batchEval rest >>= putStr . unwords . map show >> return (Pair Nil)
@@ -121,15 +150,36 @@ apply (BuiltIn Eql : rest) = batchEval rest >>= \case
 
 apply [BuiltIn Loop, procedure] = forever (eval procedure)
 
-apply [BuiltIn Read]            = do
+apply (BuiltIn Loop : arguments) =
+  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 1
+                                                 , foundCount = length arguments
+                                                 }
+
+apply [BuiltIn Read] = do
   input <- liftIO getLine
   return $ case parse Parser.sExpLine mempty input of
     Left  e -> Error . ParserError . toS . errorBundlePretty $ e
     Right a -> a
 
-apply [BuiltIn Eval , value]   = eval >=> eval $ value
+apply (BuiltIn Read : arguments) =
+  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 0
+                                                 , foundCount = length arguments
+                                                 }
 
-apply [BuiltIn Quote, atom ]   = return atom
+apply [BuiltIn Eval, value] = eval >=> eval $ value
+
+apply (BuiltIn Eval : arguments) =
+  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 1
+                                                 , foundCount = length arguments
+                                                 }
+
+apply [BuiltIn Quote, atom] = return atom
+
+apply (BuiltIn Quote : arguments) =
+  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 1
+                                                 , foundCount = length arguments
+                                                 }
+
 
 apply (BuiltIn Do : rest)      = foldM (const eval) (Pair Nil) rest
 
@@ -138,6 +188,10 @@ apply [BuiltIn Cons, car, cdr] = do
   cdr <- eval cdr
   return $ Pair (car :.: cdr)
 
+apply (BuiltIn Cons : arguments) =
+  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 2
+                                                 , foundCount = length arguments
+                                                 }
 apply [BuiltIn Car, atom] = eval atom >>= \case
   Pair Nil       -> return $ Pair Nil
   Pair (x ::: _) -> return x
@@ -145,6 +199,11 @@ apply [BuiltIn Car, atom] = eval atom >>= \case
   value -> throw @"runtimeError" TypeMismatch { expected = Type.Pair
                                               , found    = SExp.toType value
                                               }
+
+apply (BuiltIn Car : arguments) =
+  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 1
+                                                 , foundCount = length arguments
+                                                 }
 
 apply [BuiltIn Cdr, atom] = eval atom >>= \case
   Pair Nil        -> return $ Pair Nil
@@ -154,14 +213,36 @@ apply [BuiltIn Cdr, atom] = eval atom >>= \case
                                               , found    = SExp.toType value
                                               }
 
+apply (BuiltIn Cdr : arguments) =
+  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 1
+                                                 , foundCount = length arguments
+                                                 }
+
 apply [BuiltIn Set, Symbol name, atom] = do
   evaluatedSExp <- eval atom
   environment   <- ask @"table"
   Environment.setValue name evaluatedSExp environment
   return (Symbol name)
 
-apply (BuiltIn _    : _ ) = return $ Error NotImplementedYet
+apply (BuiltIn Set : _)                     = throw @"runtimeError" MalformedSet
 
+apply [BuiltIn Let, Pair (List exps), body] = do
+  case makeLetTable exps of
+    Left  _        -> throw @"runtimeError" MalformedLet
+    Right letTable -> do
+      environment    <- ask @"table"
+      evaluated      <- mapM eval letTable
+      newScope       <- liftIO $ mapM newIORef evaluated
+      environmentRef <- liftIO . newIORef $ Environment.Table
+        { variables = newScope
+        , parent    = Just environment
+        }
+      local @"table" (const environmentRef) (eval body)
+
+apply (BuiltIn Let : arguments) =
+  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 2
+                                                 , foundCount = length arguments
+                                                 }
 apply (s@(Symbol _) : as) = do
   operator <- eval s
   apply (operator : as)

@@ -1,4 +1,8 @@
-module Canjica.Function where
+module Canjica.Function
+  ( make
+  , makeLetTable
+  , proceed
+  ) where
 
 import           Capability.Error        hiding ( (:.:) )
 import           Capability.State        hiding ( (:.:) )
@@ -28,6 +32,10 @@ data FunctionParameters
   = SimpleP (Seq Text)
   | VariadicP (Seq Text)
   | Invalid ArgumentError
+
+infixr 9 ===
+(===) :: Eq b => (a -> b) -> (a -> b) -> a -> Bool
+(===) = liftA2 (==)
 
 make :: Environment.ThrowCapable m => Environment -> [SExp.T] -> m Function
 make environment [validateParameters -> SimpleP parameters, body] =
@@ -131,7 +139,15 @@ proceed arguments (MultiArity MAF { bodies, variadic }) =
   compatible :: Function.Simple SExp.T -> Bool
   compatible SF { parameters } = length parameters == length arguments
 
+data LetError
+  = InvalidArguments
+  | RepeatedName
 
-infixr 9 ===
-(===) :: Eq b => (a -> b) -> (a -> b) -> a -> Bool
-(===) = liftA2 (==)
+makeLetTable :: [SExp.T] -> Either LetError (Map Text SExp.T)
+makeLetTable (Symbol s : value : tail) = do
+  tailMap <- makeLetTable tail
+  if not (Map.member s tailMap)
+    then Right $ Map.insert s value tailMap
+    else Left RepeatedName
+makeLetTable [] = Right Map.empty
+makeLetTable _  = Left InvalidArguments

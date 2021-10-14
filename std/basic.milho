@@ -25,11 +25,10 @@
 (def numerator .__numerator)
 
 (defn inspect (f)
-  ((fn (y)
-     (fn (z)
-       (if (= z 'retrieve)
-           y
-           (do
-             (set! y (+ 1 y))
-             (f z)))))
-   0))
+    (let (y 0)
+         (fn (z)
+             (if (= z 'retrieve)
+                 y
+                 (do
+                  (set! y (+ 1 y))
+                  (f z))))))

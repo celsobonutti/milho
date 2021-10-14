@@ -23,6 +23,9 @@ data T
   | ParserError Text
   | CannotApply Type.T
   | NotImplementedYet
+  | MalformedDefinition
+  | MalformedSet
+  | MalformedLet
 
     deriving (Eq, Ord)
 
@@ -51,5 +54,12 @@ instance Show T where
   show NoCompatibleBodies
     = "No compatible body found for this number of arguments in a multi arity function"
   show (CannotApply dataType) =
-    "Cannot apply " <> show dataType <> "as a function"
+    "Cannot apply " <> show dataType <> " as a function"
   show NotImplementedYet = "Not implemented yet"
+  show MalformedDefinition =
+    "Malformed definition found. Variable and function definitions should be written as `def` followed by a symbol and a value, like:"
+      <> "(def name 50) -- for variables; or \n"
+      <> "(defn inc (x) (+ x 1)) -- for functions."
+  show MalformedSet
+    = "Malformed set! found. The `set` built-in should be used by providing the variable's name as a symbol and its new value, for example: (set! x 10)"
+  show MalformedLet = "Malformed let found."
