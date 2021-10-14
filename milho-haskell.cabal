@@ -31,8 +31,10 @@ flag incomplete-error
 
 library
   exposed-modules:
+      Canjica.Boolean
       Canjica.EvalApply
       Canjica.Function
+      Canjica.Let
       Canjica.Number
       Pipoquinha.BuiltIn
       Pipoquinha.Environment

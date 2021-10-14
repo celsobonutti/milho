@@ -1,7 +1,11 @@
 module Canjica.EvalApply where
 
 import qualified Canjica.Function              as Function
-import           Canjica.Function               ( makeLetTable )
+import           Canjica.Function               ( functionArguments
+                                                , functionBody
+                                                , functionEnvironment
+                                                )
+import qualified Canjica.Let                   as Let
 import           Canjica.Number
 import           Capability.Error        hiding ( (:.:) )
 import           Capability.Reader       hiding ( (:.:) )
@@ -31,6 +35,10 @@ import           Protolude               hiding ( MonadReader
 import           Text.Megaparsec                ( errorBundlePretty
                                                 , parse
                                                 )
+throwIfError :: ThrowCapable m => SExp.Result a -> m a
+throwIfError = \case
+  Left  error -> throw @"runtimeError" error
+  Right value -> return value
 
 eval
   :: (ReaderCapable SExp.T m, ThrowCapable m, StateCapable SExp.T m)
@@ -61,13 +69,16 @@ apply
   => [SExp.T]
   -> m SExp.T
 
-apply []                 = return $ Pair Nil
+apply [] = return $ Pair Nil
 
-apply (BuiltIn Add : as) = batchEval as
-  >>= foldl (\acc current -> acc >>= add current) (return $ Number 0)
+{- Number operations -}
 
-apply (BuiltIn Mul : as) = batchEval as
-  >>= foldl (\acc current -> acc >>= mul current) (return $ Number 1)
+apply (BuiltIn Add : values) =
+  batchEval values <&> foldM add (Number 0) >>= throwIfError
+
+
+apply (BuiltIn Mul : values) =
+  batchEval values <&> foldM mul (Number 1) >>= throwIfError
 
 apply [BuiltIn Negate, atom] = eval atom >>= \case
   Number x -> return . Number . negate $ x
@@ -101,6 +112,17 @@ apply (BuiltIn Numerator : arguments) =
                                                  , foundCount = length arguments
                                                  }
 
+{- Boolean operations -}
+
+apply [BuiltIn Not, value] = eval value >>= \case
+  Bool False -> return . Bool $ True
+  _          -> return . Bool $ False
+
+apply (BuiltIn Not : arguments) =
+  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 1
+                                                 , foundCount = length arguments
+                                                 }
+
 apply [BuiltIn Def, Symbol name, atom] = do
   evaluatedSExp <- eval atom
   environment   <- ask @"table"
@@ -111,7 +133,7 @@ apply (BuiltIn Def : arguments) = throw @"runtimeError" $ MalformedDefinition
 
 apply (BuiltIn Defn : Symbol name : rest) = do
   environment <- ask @"table"
-  function    <- Function.make environment rest
+  function    <- throwIfError $ Function.make environment rest
   Environment.insertValue name (Function function)
   return $ Symbol name
 
@@ -126,22 +148,12 @@ apply (BuiltIn If : arguments) = throw @"runtimeError" $ WrongNumberOfArguments
   { expectedCount = 3
   , foundCount    = length arguments
   }
-
-apply [BuiltIn Not, value] = eval value >>= \case
-  Bool False -> return . Bool $ True
-  _          -> return . Bool $ False
-
-apply (BuiltIn Not : arguments) =
-  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 1
-                                                 , foundCount = length arguments
-                                                 }
-
 apply (BuiltIn Print : rest) =
   batchEval rest >>= putStr . unwords . map show >> return (Pair Nil)
 
 apply (BuiltIn Fn : rest) = do
   environment <- ask @"table"
-  function    <- Function.make environment rest
+  function    <- throwIfError $ Function.make environment rest
   return $ Function function
 
 apply (BuiltIn Eql : rest) = batchEval rest >>= \case
@@ -227,33 +239,43 @@ apply [BuiltIn Set, Symbol name, atom] = do
 apply (BuiltIn Set : _)                     = throw @"runtimeError" MalformedSet
 
 apply [BuiltIn Let, Pair (List exps), body] = do
-  case makeLetTable exps of
-    Left  _        -> throw @"runtimeError" MalformedLet
-    Right letTable -> do
-      environment    <- ask @"table"
-      evaluated      <- mapM eval letTable
-      newScope       <- liftIO $ mapM newIORef evaluated
-      environmentRef <- liftIO . newIORef $ Environment.Table
-        { variables = newScope
-        , parent    = Just environment
-        }
-      local @"table" (const environmentRef) (eval body)
+  letTable           <- throwIfError $ Let.makeTable exps
+
+  environment        <- ask @"table"
+
+  evaluatedArguments <- mapM eval letTable
+
+  newScope           <- liftIO . mapM newIORef $ evaluatedArguments
+
+  environmentRef     <- liftIO . newIORef $ Environment.Table
+    { variables = newScope
+    , parent    = Just environment
+    }
+
+  local @"table" (const environmentRef) (eval body)
 
 apply (BuiltIn Let : arguments) =
   throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 2
                                                  , foundCount = length arguments
                                                  }
-apply (s@(Symbol _) : as) = do
+
+apply (BuiltIn MakeList : list) = batchEval list <&> Pair . List
+
+apply (s@(Symbol _)     : as  ) = do
   operator <- eval s
   apply (operator : as)
 
 apply (Function fn : as) = do
-  evaluatedArguments            <- batchEval as
-  (newScope, environment, vars) <- Function.proceed evaluatedArguments fn
-  let newEnvironment =
-        Environment.Table { variables = newScope, parent = Just environment }
-  environmentRef <- liftIO $ newIORef newEnvironment
-  local @"table" (const environmentRef) (eval vars)
+  evaluated      <- batchEval as
+  result         <- throwIfError $ Function.proceed fn evaluated
+  newScope       <- liftIO . mapM newIORef $ functionArguments result
+
+  environmentRef <- liftIO . newIORef $ Environment.Table
+    { variables = newScope
+    , parent    = Just $ functionEnvironment result
+    }
+
+  local @"table" (const environmentRef) (eval $ functionBody result)
 
 apply (Macro _        : _ ) = throw @"runtimeError" NotImplementedYet
 

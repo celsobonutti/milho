@@ -47,6 +47,8 @@ type Environment = Environment.TableRef T
 
 type Function = Function.T T
 
+type Result = Either Error.T
+
 data T
   = Function Function
   | Bool Bool

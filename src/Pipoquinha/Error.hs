@@ -26,6 +26,9 @@ data T
   | MalformedDefinition
   | MalformedSet
   | MalformedLet
+  | NotParameterList
+  | RepeatedParameter
+  | MisplacedVariadic
 
     deriving (Eq, Ord)
 
