@@ -12,7 +12,7 @@ There are implementations in:
 You'll need `stack` installed on your computer. Then, simply run:
 
 - `stack run repl` to run the milho repl; or
-- `stack run run <path-to-file>` to run the code from a file.
+- `stack run <path-to-file>` to run the code from a file.
 - `stack test` to run the tests
 
 ## The Language

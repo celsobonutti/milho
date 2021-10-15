@@ -43,7 +43,7 @@ main = do
         ["repl"] -> do
           putStrLn ("Welcome to the 🌽 REPL!" :: Text)
           forever $ Environment.runM run environment
-        ["run", path] -> do
+        [path] -> do
           content <- liftIO $ readFile path
           case parseFile content of
             Left e -> putStrLn e

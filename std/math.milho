@@ -10,7 +10,4 @@
 
 (defn even? (x) (= 1 (denom (/ x 2))))
 
-(defn test (memes)
-      (fn (bozzano)))
-
 (defn add-one (x) (+ x 1))
