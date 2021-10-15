@@ -58,9 +58,17 @@ builtIn =
             , Numerator <$ string "numerator"
             , Set <$ string "set"
             , Concat <$ string "concat"
+            , IsString <$ string "string?"
             , Str <$ string "str"
             , Split <$ string "split"
             , Len <$ string "len"
+            , IsFunction <$ string "function?"
+            , IsBool <$ string "bool?"
+            , IsError <$ string "error?"
+            , IsSymbol <$ string "symbol?"
+            , IsMacro <$ string "macro?"
+            , IsNumber <$ string "number?"
+            , IsPair <$ string "pair?"
             ]
           )
     <?> "built-in"

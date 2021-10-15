@@ -80,11 +80,11 @@ isSymbol _          = False
 
 toType :: T -> Type.T
 toType (Function _) = Type.Function
-toType (Bool     _) = Type.Boolean
+toType (Bool     _) = Type.Bool
 toType (Error    _) = Type.Error
 toType (Symbol   _) = Type.Symbol
 toType (Macro    _) = Type.Macro
 toType (String   _) = Type.String
-toType (BuiltIn  _) = Type.BuiltIn
+toType (BuiltIn  _) = Type.Function
 toType (Number   _) = Type.Number
 toType (Pair     _) = Type.Pair

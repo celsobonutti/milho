@@ -67,7 +67,7 @@ instance Show T where
     "Cannot apply " <> show dataType <> " as a function"
   show NotImplementedYet = "Not implemented yet"
   show MalformedDefinition =
-    "Malformed definition found. Variable and function definitions should be written as `def` followed by a symbol and a value, like:"
+    "Malformed definition found. Variable and function definitions should be written as `def` followed by a symbol and a value, like:\n"
       <> "(def name 50) -- for variables; or \n"
       <> "(defn inc (x) (+ x 1)) -- for functions."
   show MalformedSet

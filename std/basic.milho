@@ -28,8 +28,17 @@
 (def and .__and)
 (def concat .__concat)
 (def str .__str)
-(def len .__len)
 (def split .__split)
+(def len .__len)
+(def bool? .__bool?)
+(def error? .__error?)
+(def symbol? .__symbol?)
+(def macro? .__macro?)
+(def string? .__string?)
+(def number? .__number?)
+(def pair? .__pair?)
+
+(defn atom? (x) (not (pair? x)))
 
 (defn inspect (f)
     (let (y 0)

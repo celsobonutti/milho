@@ -407,6 +407,96 @@ apply (BuiltIn Len : arguments) =
         , functionName  = Just "len"
         }
 
+{- Type operations -}
+
+apply [BuiltIn IsFunction, argument] = do
+    result <- eval argument
+    return . Bool $ SExp.toType result == Type.Function
+
+apply (BuiltIn IsFunction : arguments) =
+    throw @"runtimeError" $ WrongNumberOfArguments
+        { expectedCount = 1
+        , foundCount    = length arguments
+        , functionName  = Just "function?"
+        }
+
+apply [BuiltIn IsBool, argument] = do
+    result <- eval argument
+    return . Bool $ SExp.toType result == Type.Bool
+
+apply (BuiltIn IsBool : arguments) =
+    throw @"runtimeError" $ WrongNumberOfArguments
+        { expectedCount = 1
+        , foundCount    = length arguments
+        , functionName  = Just "bool?"
+        }
+
+apply [BuiltIn IsError, argument] = do
+    result <- eval argument
+    return . Bool $ SExp.toType result == Type.Error
+
+apply (BuiltIn IsError : arguments) =
+    throw @"runtimeError" $ WrongNumberOfArguments
+        { expectedCount = 1
+        , foundCount    = length arguments
+        , functionName  = Just "error?"
+        }
+
+apply [BuiltIn IsSymbol, argument] = do
+    result <- eval argument
+    return . Bool $ SExp.toType result == Type.Symbol
+
+apply (BuiltIn IsSymbol : arguments) =
+    throw @"runtimeError" $ WrongNumberOfArguments
+        { expectedCount = 1
+        , foundCount    = length arguments
+        , functionName  = Just "symbol?"
+        }
+
+apply [BuiltIn IsMacro, argument] = do
+    result <- eval argument
+    return . Bool $ SExp.toType result == Type.Macro
+
+apply (BuiltIn IsMacro : arguments) =
+    throw @"runtimeError" $ WrongNumberOfArguments
+        { expectedCount = 1
+        , foundCount    = length arguments
+        , functionName  = Just "macro?"
+        }
+
+apply [BuiltIn IsString, argument] = do
+    result <- eval argument
+    return . Bool $ SExp.toType result == Type.String
+
+apply (BuiltIn IsString : arguments) =
+    throw @"runtimeError" $ WrongNumberOfArguments
+        { expectedCount = 1
+        , foundCount    = length arguments
+        , functionName  = Just "string"
+        }
+
+apply [BuiltIn IsNumber, argument] = do
+    result <- eval argument
+    return . Bool $ SExp.toType result == Type.Number
+
+apply (BuiltIn IsNumber : arguments) =
+    throw @"runtimeError" $ WrongNumberOfArguments
+        { expectedCount = 1
+        , foundCount    = length arguments
+        , functionName  = Just "number?"
+        }
+
+apply [BuiltIn IsPair, argument] = do
+    result <- eval argument
+    return . Bool $ SExp.toType result == Type.Pair
+
+apply (BuiltIn IsPair : arguments) =
+    throw @"runtimeError" $ WrongNumberOfArguments
+        { expectedCount = 1
+        , foundCount    = length arguments
+        , functionName  = Just "pair?"
+        }
+
 {- Remaining operations -}
 
 apply (s@(Symbol _) : as) = do
@@ -421,7 +511,7 @@ apply (Pair   (_ :.: _) : _) = throw @"runtimeError" $ CannotApply Type.Pair
 
 apply (Pair   Nil       : _) = throw @"runtimeError" $ CannotApply Type.Pair
 
-apply (Bool   _         : _) = throw @"runtimeError" $ CannotApply Type.Boolean
+apply (Bool   _         : _) = throw @"runtimeError" $ CannotApply Type.Bool
 
 apply (String _         : _) = throw @"runtimeError" $ CannotApply Type.String
 

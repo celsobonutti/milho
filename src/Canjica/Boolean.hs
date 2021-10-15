@@ -15,9 +15,9 @@ type Result = Either Error.T SExp.T
 ifBoolean :: SExp.T -> SExp.T -> (a -> SExp.T) -> (Bool -> Bool -> a) -> Result
 ifBoolean (Bool x) (Bool y) dataType op = Right . dataType $ op x y
 ifBoolean (Bool _) y _ _ =
-    Left $ TypeMismatch { expected = Type.Boolean, found = SExp.toType y }
+    Left $ TypeMismatch { expected = Type.Bool, found = SExp.toType y }
 ifBoolean x _ _ _ =
-    Left $ TypeMismatch { expected = Type.Boolean, found = SExp.toType x }
+    Left $ TypeMismatch { expected = Type.Bool, found = SExp.toType x }
 
 and :: SExp.T -> SExp.T -> Result
 and x y = ifBoolean x y Bool (&&)

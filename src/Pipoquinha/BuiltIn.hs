@@ -35,4 +35,13 @@ data T
   | Str
   | Split
   | Len
+  | IsFunction
+  | IsBool
+  | IsError
+  | IsSymbol
+  | IsMacro
+  | IsString
+  | IsNumber
+  | IsPair
+
   deriving (Eq, Show, Ord)

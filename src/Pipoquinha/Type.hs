@@ -4,11 +4,10 @@ import           Protolude
 
 data T
   = Function
-  | Boolean
+  | Bool
   | Error
   | Symbol
   | Macro
   | String
-  | BuiltIn
   | Number
   | Pair deriving (Eq, Ord, Show)
