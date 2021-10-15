@@ -1,13 +1,13 @@
 cradle:
-  stack:
-    - path: "./src"
-      component: "milho-haskell:lib"
+  cabal:
+    - path: "src"
+      component: "lib:milho"
 
-    - path: "./app/Main.hs"
-      component: "milho-haskell:exe:milho-haskell-exe"
+    - path: "app/Main.hs"
+      component: "milho:exe:milho-exe"
 
-    - path: "./app/Paths_milho_haskell.hs"
-      component: "milho-haskell:exe:milho-haskell-exe"
+    - path: "app/Paths_milho.hs"
+      component: "milho:exe:milho-exe"
 
-    - path: "./test"
-      component: "milho-haskell:test:milho-haskell-test"
+    - path: "test"
+      component: "milho:test:milho-test"

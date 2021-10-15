@@ -4,11 +4,11 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 
-name:           milho-haskell
+name:           milho
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/celsobonutti/milho-haskell#readme>
-homepage:       https://github.com/celsobonutti/milho-haskell#readme
-bug-reports:    https://github.com/celsobonutti/milho-haskell/issues
+description:    Please see the README on GitHub at <https://github.com/celsobonutti/milho#readme>
+homepage:       https://github.com/celsobonutti/milho#readme
+bug-reports:    https://github.com/celsobonutti/milho/issues
 author:         Celso Bonutti
 maintainer:     i.am@cel.so
 copyright:      Celso Bonutti
@@ -21,7 +21,7 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/celsobonutti/milho-haskell
+  location: https://github.com/celsobonutti/milho
 
 flag incomplete-error
   description: Incomplete patterns, missing record fields, and missing class methods are an error
@@ -48,7 +48,7 @@ library
       Pipoquinha.Type
       Pipoquinha.VarTable
   other-modules:
-      Paths_milho_haskell
+      Paths_milho
   hs-source-dirs:
       src
   default-extensions:
@@ -80,10 +80,10 @@ library
     ghc-options: -Werror=missing-fields -Werror=missing-methods
   default-language: Haskell2010
 
-executable milho-haskell-exe
+executable milho-exe
   main-is: Main.hs
   other-modules:
-      Paths_milho_haskell
+      Paths_milho
   hs-source-dirs:
       app
   default-extensions:
@@ -109,7 +109,7 @@ executable milho-haskell-exe
     , containers >=0.6.5.1 && <0.7
     , file-embed >=0.0.14.0 && <0.0.15.0
     , megaparsec >=9.2.0 && <10.0
-    , milho-haskell
+    , milho
     , parser-combinators >=1.3.0 && <2.0
     , protolude >=0.3.0 && <0.4.0
     , text >=1.2.4.1 && <1.3
@@ -117,11 +117,11 @@ executable milho-haskell-exe
     ghc-options: -Werror=missing-fields -Werror=missing-methods
   default-language: Haskell2010
 
-test-suite milho-haskell-test
+test-suite milho-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Paths_milho_haskell
+      Paths_milho
   hs-source-dirs:
       test
   default-extensions:
@@ -147,7 +147,7 @@ test-suite milho-haskell-test
     , containers >=0.6.5.1 && <0.7
     , file-embed >=0.0.14.0 && <0.0.15.0
     , megaparsec >=9.2.0 && <10.0
-    , milho-haskell
+    , milho
     , parser-combinators >=1.3.0 && <2.0
     , protolude >=0.3.0 && <0.4.0
     , text >=1.2.4.1 && <1.3

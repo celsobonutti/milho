@@ -1,3 +1,3 @@
-# Changelog for milho-haskell
+# Changelog for milho
 
 ## Unreleased changes
