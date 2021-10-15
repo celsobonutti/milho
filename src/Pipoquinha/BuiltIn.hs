@@ -28,6 +28,7 @@ data T
   | Cdr
   | Quote
   | Gt
+  | Lt
   | Numerator
   | Set
   deriving (Eq, Show, Ord)

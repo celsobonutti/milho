@@ -47,7 +47,7 @@ main = do
           forever $ Environment.runM run environment
         ["run", path] -> do
           putStrLn ("Not implemented yet" :: Text)
-      
+
 
 run :: (StateCapable SExp.T m, ReaderCapable SExp.T m, CatchCapable m) => m ()
 run = do
@@ -57,8 +57,8 @@ run = do
     Left bundle ->
       print . Error . ParserError . toS . errorBundlePretty $ bundle
     Right atom -> do
-      atom <- catch @"runtimeError" (eval atom) (return . Error)
-      print atom
+      result <- eval atom
+      print result
 
 parseFile :: ByteString -> Either Text [SExp.T]
 parseFile =

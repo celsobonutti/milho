@@ -35,6 +35,7 @@ library
       Canjica.EvalApply
       Canjica.Function
       Canjica.Let
+      Canjica.List
       Canjica.Number
       Pipoquinha.BuiltIn
       Pipoquinha.Environment

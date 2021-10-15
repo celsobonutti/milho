@@ -1,4 +1,9 @@
-module Canjica.Number where
+module Canjica.Number
+   ( add
+   , mul
+   , gt
+   , lt
+   ) where
 
 import           Capability.Error
 import           Pipoquinha.Environment         ( ThrowCapable )

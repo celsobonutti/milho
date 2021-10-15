@@ -5,6 +5,7 @@
 (def * .__mul)
 (def = .__eq)
 (def > .__gt)
+(def < .__lt)
 (def negate .__negate)
 (def invert .__invert)
 (def fn .__fn)

@@ -54,6 +54,7 @@ builtIn =
             , Cdr <$ string "cdr"
             , Quote <$ string "quote"
             , Gt <$ string "gt"
+            , Lt <$ string "lt"
             , Numerator <$ string "numerator"
             , Set <$ string "set"
             ]
