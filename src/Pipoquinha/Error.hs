@@ -15,11 +15,13 @@ data T
   | OverlappingBodies
   | WrongNumberOfArguments { expectedCount :: Int
                            , foundCount    :: Int
+                           , functionName :: Maybe Text
                            }
   | NotEnoughArguments { expectedCount :: Int
                        , foundCount :: Int
+                       , functionName :: Maybe Text
                        }
-  | NoCompatibleBodies
+  | NoCompatibleBodies (Maybe Text)
   | ParserError Text
   | CannotApply Type.T
   | NotImplementedYet
@@ -44,18 +46,23 @@ instance Show T where
     "You can only have one variadic case in a multi arity function"
   show InvalidFunctionBody = "Invalid function body"
   show OverlappingBodies = "Repeated parameter count in a multi arity function"
-  show WrongNumberOfArguments { expectedCount, foundCount } =
-    "Wrong number of arguments: expecting "
+  show WrongNumberOfArguments { expectedCount, foundCount, functionName } =
+    "Wrong number of arguments for "
+      <> maybe "anonymous function" toS functionName
+      <> ": expecting "
       <> show expectedCount
       <> ", found "
       <> show foundCount
-  show NotEnoughArguments { expectedCount, foundCount } =
-    "Not enough arguments for variadic function: expecting at least "
+  show NotEnoughArguments { expectedCount, foundCount, functionName } =
+    "Not enough arguments for "
+      <> maybe "anonymous function" toS functionName
+      <> ": expecting at least "
       <> show expectedCount
       <> ", found "
       <> show foundCount
-  show NoCompatibleBodies
-    = "No compatible body found for this number of arguments in a multi arity function"
+  show (NoCompatibleBodies name) =
+    "No compatible body found with this number of arguments for "
+      <> maybe "anonymous function" toS name
   show (CannotApply dataType) =
     "Cannot apply " <> show dataType <> " as a function"
   show NotImplementedYet = "Not implemented yet"
@@ -66,3 +73,9 @@ instance Show T where
   show MalformedSet
     = "Malformed set! found. The `set` built-in should be used by providing the variable's name as a symbol and its new value, for example: (set! x 10)"
   show MalformedLet = "Malformed let found."
+  show NotParameterList
+    = "Malformed parameter list found. A function's parameter list should only have symbols."
+  show RepeatedParameter
+    = "Non-unique parameter name found. A function cannot have two parameters with the same name."
+  show MisplacedVariadic
+    = "Misplaced variadic parameter found. The +rest parameter is a special syntax for variadics, and show be placed by the end of the parameter list."

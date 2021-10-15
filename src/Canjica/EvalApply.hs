@@ -88,6 +88,7 @@ apply [BuiltIn Negate, atom] = eval atom >>= \case
 apply (BuiltIn Negate : arguments) =
   throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 1
                                                  , foundCount = length arguments
+                                                 , functionName = Just "negate"
                                                  }
 
 apply [BuiltIn Invert, atom] = eval atom >>= \case
@@ -99,6 +100,7 @@ apply [BuiltIn Invert, atom] = eval atom >>= \case
 apply (BuiltIn Invert : arguments) =
   throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 1
                                                  , foundCount = length arguments
+                                                 , functionName = Just "invert"
                                                  }
 
 apply [BuiltIn Numerator, atom] = eval atom >>= \case
@@ -108,9 +110,11 @@ apply [BuiltIn Numerator, atom] = eval atom >>= \case
                                                  }
 
 apply (BuiltIn Numerator : arguments) =
-  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 1
-                                                 , foundCount = length arguments
-                                                 }
+  throw @"runtimeError" $ WrongNumberOfArguments
+    { expectedCount = 1
+    , foundCount    = length arguments
+    , functionName  = Just "numerator"
+    }
 
 {- Boolean operations -}
 
@@ -121,6 +125,7 @@ apply [BuiltIn Not, value] = eval value >>= \case
 apply (BuiltIn Not : arguments) =
   throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 1
                                                  , foundCount = length arguments
+                                                 , functionName = Just "not"
                                                  }
 
 apply (BuiltIn And : values) =
@@ -128,6 +133,17 @@ apply (BuiltIn And : values) =
 
 apply (BuiltIn Or : values) =
   batchEval values <&> foldM Boolean.or (Bool False) >>= throwIfError
+
+apply [BuiltIn If, predicate, consequent, alternative] =
+  eval predicate >>= \case
+    Bool False -> eval alternative
+    _          -> eval consequent
+
+apply (BuiltIn If : arguments) = throw @"runtimeError" $ WrongNumberOfArguments
+  { expectedCount = 3
+  , foundCount    = length arguments
+  , functionName  = Just "if"
+  }
 
 {- Value definition operations -}
 
@@ -141,103 +157,20 @@ apply (BuiltIn Def : arguments) = throw @"runtimeError" $ MalformedDefinition
 
 apply (BuiltIn Defn : Symbol name : rest) = do
   environment <- ask @"table"
-  function    <- throwIfError $ Function.make environment rest
+  function    <- throwIfError $ Function.make environment (Just name) rest
   Environment.insertValue name (Function function)
   return $ Symbol name
 
 apply (BuiltIn Defn : arguments) = throw @"runtimeError" $ MalformedDefinition
 
-apply [BuiltIn If, predicate, consequent, alternative] =
-  eval predicate >>= \case
-    Bool False -> eval alternative
-    _          -> eval consequent
-
-apply (BuiltIn If : arguments) = throw @"runtimeError" $ WrongNumberOfArguments
-  { expectedCount = 3
-  , foundCount    = length arguments
-  }
-
-apply (BuiltIn Print : rest) =
-  batchEval rest >>= putStr . unwords . map show >> return (Pair Nil)
-
-apply (BuiltIn Fn : rest) = do
+apply (BuiltIn Defmacro : Symbol name : rest) = do
   environment <- ask @"table"
-  function    <- throwIfError $ Function.make environment rest
-  return $ Function function
+  function    <- throwIfError $ Function.make environment (Just name) rest
+  Environment.insertValue name (Macro function)
+  return $ Symbol name
 
-apply (BuiltIn Eql : rest) = batchEval rest >>= \case
-  []            -> throw @"runtimeError" (WrongNumberOfArguments 1 0)
-  (base : rest) -> return (Bool $ (== base) `all` rest)
-
-apply [BuiltIn Loop, procedure] = forever (eval procedure)
-
-apply (BuiltIn Loop : arguments) =
-  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 1
-                                                 , foundCount = length arguments
-                                                 }
-
-apply [BuiltIn Read] = do
-  input <- liftIO getLine
-  return $ case parse Parser.sExpLine mempty input of
-    Left  e -> Error . ParserError . toS . errorBundlePretty $ e
-    Right a -> a
-
-apply (BuiltIn Read : arguments) =
-  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 0
-                                                 , foundCount = length arguments
-                                                 }
-
-apply [BuiltIn Eval, value] = eval >=> eval $ value
-
-apply (BuiltIn Eval : arguments) =
-  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 1
-                                                 , foundCount = length arguments
-                                                 }
-
-apply [BuiltIn Quote, atom] = return atom
-
-apply (BuiltIn Quote : arguments) =
-  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 1
-                                                 , foundCount = length arguments
-                                                 }
-
-
-apply (BuiltIn Do : rest)      = foldM (const eval) (Pair Nil) rest
-
-apply [BuiltIn Cons, car, cdr] = do
-  car <- eval car
-  cdr <- eval cdr
-  return $ Pair (car :.: cdr)
-
-apply (BuiltIn Cons : arguments) =
-  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 2
-                                                 , foundCount = length arguments
-                                                 }
-apply [BuiltIn Car, atom] = eval atom >>= \case
-  Pair Nil       -> return $ Pair Nil
-  Pair (x ::: _) -> return x
-  Pair (x :.: _) -> return x
-  value -> throw @"runtimeError" TypeMismatch { expected = Type.Pair
-                                              , found    = SExp.toType value
-                                              }
-
-apply (BuiltIn Car : arguments) =
-  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 1
-                                                 , foundCount = length arguments
-                                                 }
-
-apply [BuiltIn Cdr, atom] = eval atom >>= \case
-  Pair Nil        -> return $ Pair Nil
-  Pair (_ ::: xs) -> return $ Pair xs
-  Pair (_ :.: x ) -> return x
-  value -> throw @"runtimeError" TypeMismatch { expected = Type.Pair
-                                              , found    = SExp.toType value
-                                              }
-
-apply (BuiltIn Cdr : arguments) =
-  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 1
-                                                 , foundCount = length arguments
-                                                 }
+apply (BuiltIn Defmacro : arguments) =
+  throw @"runtimeError" $ MalformedDefinition
 
 apply [BuiltIn Set, Symbol name, atom] = do
   evaluatedSExp <- eval atom
@@ -266,16 +199,18 @@ apply [BuiltIn Let, Pair (List exps), body] = do
 apply (BuiltIn Let : arguments) =
   throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 2
                                                  , foundCount = length arguments
+                                                 , functionName = Just "let"
                                                  }
 
-apply (BuiltIn MakeList : list) = batchEval list <&> Pair . List
+{- Function operations -}
 
-apply (s@(Symbol _)     : as  ) = do
-  operator <- eval s
-  apply (operator : as)
+apply (BuiltIn Fn : rest) = do
+  environment <- ask @"table"
+  function    <- throwIfError $ Function.make environment Nothing rest
+  return $ Function function
 
-apply (Function fn : as) = do
-  evaluated      <- batchEval as
+apply (Function fn : values) = do
+  evaluated      <- batchEval values
   result         <- throwIfError $ Function.proceed fn evaluated
   newScope       <- liftIO . mapM newIORef $ functionArguments result
 
@@ -286,9 +221,118 @@ apply (Function fn : as) = do
 
   local @"table" (const environmentRef) (eval $ functionBody result)
 
-apply (Macro _        : _ ) = throw @"runtimeError" NotImplementedYet
+apply (Macro macro : values) = do
+  result         <- throwIfError $ Function.proceed macro values
+  newScope       <- liftIO . mapM newIORef $ functionArguments result
 
-apply (Pair  (List l) : as) = do
+  environmentRef <- liftIO . newIORef $ Environment.Table
+    { variables = newScope
+    , parent    = Just $ functionEnvironment result
+    }
+
+  local @"table" (const environmentRef) (eval $ functionBody result)
+
+{- REPL -}
+
+apply [BuiltIn Read] = do
+  input <- liftIO getLine
+  return $ case parse Parser.sExpLine mempty input of
+    Left  e -> Error . ParserError . toS . errorBundlePretty $ e
+    Right a -> a
+
+apply (BuiltIn Read : arguments) =
+  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 0
+                                                 , foundCount = length arguments
+                                                 , functionName = Just "read"
+                                                 }
+
+apply [BuiltIn Eval, value] = eval >=> eval $ value
+
+apply (BuiltIn Eval : arguments) =
+  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 1
+                                                 , foundCount = length arguments
+                                                 , functionName = Just "eval"
+                                                 }
+apply (BuiltIn Print : rest) =
+  batchEval rest >>= putStr . unwords . map show >> return (Pair Nil)
+
+apply [BuiltIn Loop, procedure] = forever (eval procedure)
+
+apply (BuiltIn Loop : arguments) =
+  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 1
+                                                 , foundCount = length arguments
+                                                 , functionName = Just "loop"
+                                                 }
+
+apply [BuiltIn Quote, atom] = return atom
+
+apply (BuiltIn Quote : arguments) =
+  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 1
+                                                 , foundCount = length arguments
+                                                 , functionName = Just "quote"
+                                                 }
+
+
+apply (BuiltIn Do : rest)      = foldM (const eval) (Pair Nil) rest
+
+{- List operations -}
+
+apply [BuiltIn Cons, car, cdr] = do
+  car <- eval car
+  cdr <- eval cdr
+  return $ Pair (car :.: cdr)
+
+apply (BuiltIn Cons : arguments) =
+  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 2
+                                                 , foundCount = length arguments
+                                                 , functionName = Just "cons"
+                                                 }
+
+apply (BuiltIn MakeList : list) = batchEval list <&> Pair . List
+
+apply [BuiltIn Car, atom]       = eval atom >>= \case
+  Pair Nil       -> return $ Pair Nil
+  Pair (x ::: _) -> return x
+  Pair (x :.: _) -> return x
+  value -> throw @"runtimeError" TypeMismatch { expected = Type.Pair
+                                              , found    = SExp.toType value
+                                              }
+
+apply (BuiltIn Car : arguments) =
+  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 1
+                                                 , foundCount = length arguments
+                                                 , functionName = Just "car"
+                                                 }
+
+apply [BuiltIn Cdr, atom] = eval atom >>= \case
+  Pair Nil        -> return $ Pair Nil
+  Pair (_ ::: xs) -> return $ Pair xs
+  Pair (_ :.: x ) -> return x
+  value -> throw @"runtimeError" TypeMismatch { expected = Type.Pair
+                                              , found    = SExp.toType value
+                                              }
+
+apply (BuiltIn Cdr : arguments) =
+  throw @"runtimeError" $ WrongNumberOfArguments { expectedCount = 1
+                                                 , foundCount = length arguments
+                                                 , functionName = Just "cdr"
+                                                 }
+
+{- Remaining operations -}
+
+apply (BuiltIn Eql : rest) = batchEval rest >>= \case
+  [] -> throw @"runtimeError" $ NotEnoughArguments { expectedCount = 1
+                                                   , foundCount    = 0
+                                                   , functionName  = Just "="
+                                                   }
+
+  (base : rest) -> return (Bool $ (== base) `all` rest)
+
+apply (s@(Symbol _) : as) = do
+  operator <- eval s
+  apply (operator : as)
+
+apply (Pair (List l) : as) = do
   operator <- apply l
   apply (operator : as)
 

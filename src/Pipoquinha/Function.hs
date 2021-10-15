@@ -8,6 +8,7 @@ import           Protolude               hiding ( show )
 
 data Simple sexp = SF
   { parameters  :: Seq Text
+  , name        :: Maybe Text
   , body        :: sexp
   , environment :: Environment.TableRef sexp
   }
@@ -15,6 +16,7 @@ data Simple sexp = SF
 
 data Variadic sexp = VF
   { parameters  :: Seq Text
+  , name        :: Maybe Text
   , body        :: sexp
   , environment :: Environment.TableRef sexp
   }
@@ -23,6 +25,7 @@ data Variadic sexp = VF
 data MultiArity sexp = MAF
   { bodies   :: Map Int (Simple sexp)
   , variadic :: Maybe (Variadic sexp)
+  , name     :: Maybe Text
   }
   deriving Eq
 

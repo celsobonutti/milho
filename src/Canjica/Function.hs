@@ -37,17 +37,18 @@ data FunctionParameters
   | VariadicP (Seq Text)
   | Invalid Error.T
 
-make :: Environment -> [SExp.T] -> SExp.Result Function
-make environment parameters = case traverse fromSExpList parameters of
-  Just bodies -> makeMultiArity environment bodies
+make :: Environment -> Maybe Text -> [SExp.T] -> SExp.Result Function
+make environment name parameters = case traverse fromSExpList parameters of
+  Just bodies -> makeMultiArity environment name bodies
 
   Nothing     -> case parameters of
     [parameterNames, body] -> case validateParameters parameterNames of
 
-      SimpleP parameters -> Right $ Simple SF { body, parameters, environment }
+      SimpleP parameters ->
+        Right $ Simple SF { body, parameters, environment, name }
 
       VariadicP parameters ->
-        Right $ Variadic VF { body, parameters, environment }
+        Right $ Variadic VF { body, parameters, environment, name }
 
       Invalid error -> Left error
 
@@ -69,9 +70,10 @@ validateParameters (Pair (List atoms))
   extractName _          = Nothing
 validateParameters _ = Invalid NotParameterList
 
-makeMultiArity :: Environment -> [[SExp.T]] -> SExp.Result Function
-makeMultiArity environment bodies =
-  mapM (make environment) bodies
+makeMultiArity
+  :: Environment -> Maybe Text -> [[SExp.T]] -> SExp.Result Function
+makeMultiArity environment name bodies =
+  mapM (make environment Nothing) bodies
     >>= \case
           (_, _, multiArity) | not (null multiArity) ->
             Left NestedMultiArityFunction
@@ -89,7 +91,7 @@ makeMultiArity environment bodies =
 
                 variadic = head variadicList
             in  if isUnique
-                  then Right $ MultiArity MAF { bodies, variadic }
+                  then Right $ MultiArity MAF { bodies, variadic, name }
                   else Left OverlappingBodies
     .   splitFunctions
 
@@ -131,7 +133,7 @@ data ProceedResult = ProceedResult
 
 proceed :: Function -> [SExp.T] -> SExp.Result ProceedResult
 
-proceed (Simple SF { body, parameters, environment }) arguments
+proceed (Simple SF { body, name, parameters, environment }) arguments
   | length arguments == length parameters = do
     let functionArguments = Map.fromList (zip (toList parameters) arguments)
 
@@ -142,9 +144,10 @@ proceed (Simple SF { body, parameters, environment }) arguments
   | otherwise = Left $ WrongNumberOfArguments
     { expectedCount = length parameters
     , foundCount    = length arguments
+    , functionName  = name
     }
 
-proceed (Variadic VF { body, parameters, environment }) arguments
+proceed (Variadic VF { body, name, parameters, environment }) arguments
   | length arguments >= length parameters
   = let (nonVariadic, variadic) = splitAt (length parameters) arguments
         table = (Map.fromList $ zip (toList parameters) nonVariadic)
@@ -156,15 +159,16 @@ proceed (Variadic VF { body, parameters, environment }) arguments
   | otherwise
   = Left $ NotEnoughArguments { expectedCount = length parameters
                               , foundCount    = length arguments
+                              , functionName  = name
                               }
 
-proceed (MultiArity MAF { bodies, variadic }) arguments =
+proceed (MultiArity MAF { bodies, variadic, name }) arguments =
   case find compatible bodies of
     Just f  -> proceed (Simple f) arguments
     Nothing -> case variadic of
       Just f@VF { parameters } | length arguments >= length parameters ->
         proceed (Variadic f) arguments
-      _ -> Left NoCompatibleBodies
+      _ -> Left $ NoCompatibleBodies name
  where
   compatible :: Function.Simple SExp.T -> Bool
   compatible SF { parameters } = length parameters == length arguments

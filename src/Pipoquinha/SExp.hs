@@ -63,7 +63,7 @@ data T
 
 instance Show T where
   show (Bool     b) = show b
-  show (Symbol   t) = toS $ "#" <> t
+  show (Symbol   t) = toS $ "'" <> t
   show (Error    e) = toS $ "Error: " <> show e
   show (Function f) = "fn#" <> show f
   show (Macro    m) = "macro#" <> show m
