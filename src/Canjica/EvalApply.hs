@@ -2,12 +2,14 @@ module Canjica.EvalApply where
 
 import qualified Canjica.Boolean               as Boolean
 import qualified Canjica.Function              as Function
-import           Canjica.Function               ( functionArguments
+import           Canjica.Function               ( ProceedResult(..)
+                                                , functionArguments
                                                 , functionBody
                                                 , functionEnvironment
                                                 )
 import qualified Canjica.Let                   as Let
 import qualified Canjica.List                  as List
+import qualified Canjica.Macro                 as Macro
 import qualified Canjica.Number                as Number
 import qualified Canjica.String                as String
 import           Capability.Error        hiding ( (:.:) )
@@ -282,15 +284,12 @@ apply (Function fn : values) = do
     local @"table" (const environmentRef) (eval $ functionBody result)
 
 apply (Macro macro : values) = do
-    result         <- throwIfError $ Function.proceed macro values
-    newScope       <- liftIO . mapM newIORef $ functionArguments result
+    ProceedResult { functionArguments, functionEnvironment, functionBody } <-
+        throwIfError $ Function.proceed macro values
 
-    environmentRef <- liftIO . newIORef $ Environment.Table
-        { variables = newScope
-        , parent    = Just $ functionEnvironment result
-        }
+    let expanded = Macro.expand functionArguments functionBody
 
-    local @"table" (const environmentRef) (eval $ functionBody result)
+    local @"table" (const functionEnvironment) (eval expanded)
 
 {- REPL -}
 

@@ -33,15 +33,13 @@ pairToList Nil        = Just []
 pairToList (x ::: xs) = (x :) <$> pairToList xs
 pairToList (x :.: xs) = Nothing
 
-{-# COMPLETE (:.:), (:::), Nil #-}
-
-{-# COMPLETE (:.:), List, Nil #-}
+{-# COMPLETE (:.:), Nil #-}
 
 instance Show Pair where
   show Nil         = "Nil"
-  show (x ::: Nil) = show x
-  show (x ::: xs ) = show x ++ " " ++ show xs
-  show (x :.: y  ) = show x ++ " . " ++ show y
+  show (x ::: Nil) = "(" <> show x <> ")"
+  show (x ::: xs ) = "(" <> show x ++ " " ++ show xs <> ")"
+  show (x :.: y  ) = "(" <> show x ++ " . " ++ show y <> ")"
 
 type Environment = Environment.TableRef T
 
@@ -69,7 +67,7 @@ instance Show T where
   show (Macro    m) = "macro#" <> show m
   show (String   s) = "\"" <> toS s <> "\""
   show (BuiltIn  b) = "BuilIn." <> show b
-  show (Pair     p) = "(" ++ show p ++ ")"
+  show (Pair     p) = show p
   show (Number n)
     | denominator n == 1 = show $ numerator n
     | otherwise          = show (numerator n) ++ "/" ++ show (denominator n)

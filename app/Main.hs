@@ -33,7 +33,7 @@ basicOps = foldr ((<>) . snd) "" $(embedDir "std")
 main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering
-  case parseFile basicOps of
+  case parseFile . decodeUtf8 $ basicOps of
     Left  e        -> putStrLn e
     Right builtIns -> do
       let table = Environment.Table { variables = Map.empty, parent = Nothing }
@@ -46,8 +46,12 @@ main = do
           putStrLn ("Welcome to the 🌽 REPL!" :: Text)
           forever $ Environment.runM run environment
         ["run", path] -> do
-          putStrLn ("Not implemented yet" :: Text)
-      
+          content <- liftIO $ readFile path
+          case parseFile content of
+            Left  e            -> putStrLn e
+            Right instructions -> mapM_ (\atom -> Environment.runM (eval atom) environment) instructions
+        _ -> putStrLn ("Invalid option." :: Text)
+
 
 run :: (StateCapable SExp.T m, ReaderCapable SExp.T m, CatchCapable m) => m ()
 run = do
@@ -60,9 +64,6 @@ run = do
       result <- catch @"runtimeError" (eval atom) (return . Error)
       print result
 
-parseFile :: ByteString -> Either Text [SExp.T]
+parseFile :: Text -> Either Text [SExp.T]
 parseFile =
-  first (toS . errorBundlePretty)
-    . parse Parser.sExpFile mempty
-    . strip
-    . decodeUtf8
+  first (toS . errorBundlePretty) . parse Parser.sExpFile mempty . strip

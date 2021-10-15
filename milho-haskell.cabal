@@ -36,6 +36,7 @@ library
       Canjica.Function
       Canjica.Let
       Canjica.List
+      Canjica.Macro
       Canjica.Number
       Canjica.String
       Pipoquinha.BuiltIn

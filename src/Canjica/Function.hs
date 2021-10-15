@@ -1,5 +1,6 @@
 module Canjica.Function
-  ( make
+  ( Arguments
+  , make
   , proceed
   , ProceedResult(..)
   ) where

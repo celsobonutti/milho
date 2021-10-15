@@ -1,12 +1,11 @@
 module Canjica.Let where
 
+import           Canjica.Function               ( Arguments )
 import           Data.Map                       ( Map )
 import qualified Data.Map                      as Map
 import           Pipoquinha.Error               ( T(..) )
 import           Pipoquinha.SExp               as SExp
 import           Protolude
-
-type Arguments = Map Text SExp.T
 
 makeTable :: [SExp.T] -> SExp.Result Arguments
 makeTable (Symbol s : value : tail) = do
