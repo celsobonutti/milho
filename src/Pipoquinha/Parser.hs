@@ -63,7 +63,6 @@ builtIn =
             , IsString <$ string "string?"
             , Str <$ string "str"
             , Split <$ string "split"
-            , Len <$ string "len"
             , IsFunction <$ string "function?"
             , IsBool <$ string "bool?"
             , IsError <$ string "error?"

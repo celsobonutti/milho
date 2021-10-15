@@ -443,15 +443,6 @@ apply (BuiltIn Split : arguments) =
         , functionName  = Just "split"
         }
 
-apply [BuiltIn Len, argument] = eval argument <&> String.len >>= throwIfError
-
-apply (BuiltIn Len : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 1
-        , foundCount    = length arguments
-        , functionName  = Just "len"
-        }
-
 {- Type operations -}
 
 apply [BuiltIn IsFunction, argument] = do

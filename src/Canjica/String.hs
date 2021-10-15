@@ -23,10 +23,12 @@ ifString x _ _ _ =
 concat :: SExp.T -> SExp.T -> Result
 concat x y = ifString x y String (<>)
 
-len :: SExp.T -> Result
-len (String str) = Right . Number . toRational . length $ str
-len value =
-    Left TypeMismatch { expected = Type.String, found = SExp.toType value }
-
 split :: SExp.T -> SExp.T -> Result
-split x y = ifString x y (Pair . List . fmap String) splitOn
+split x y = ifString x y (Pair . List . fmap String) splitText
+  where
+    splitText :: Text -> Text -> [Text]
+    splitText "" y =
+        let charList :: [Char]     = toS y
+            stringList :: [[Char]] = return <$> charList
+        in  toS <$> stringList
+    splitText x y = splitOn x y

@@ -31,7 +31,6 @@
 (def concat .__concat)
 (def str .__str)
 (def split .__split)
-(def len .__len)
 (def bool? .__bool?)
 (def error? .__error?)
 (def symbol? .__symbol?)

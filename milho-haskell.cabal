@@ -66,6 +66,7 @@ library
       PatternSynonyms
       ViewPatterns
       ConstraintKinds
+      ScopedTypeVariables
   build-depends:
       base >=4.7 && <5
     , capability >=0.5.0 && <0.6
@@ -100,6 +101,7 @@ executable milho-haskell-exe
       PatternSynonyms
       ViewPatterns
       ConstraintKinds
+      ScopedTypeVariables
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
@@ -137,6 +139,7 @@ test-suite milho-haskell-test
       PatternSynonyms
       ViewPatterns
       ConstraintKinds
+      ScopedTypeVariables
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5

@@ -1,3 +1,6 @@
+(defn length (str)
+      (size (split "" str)))
+
 (defn join (separator list)
       (if (null? list)
           ""
