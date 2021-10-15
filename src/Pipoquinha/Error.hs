@@ -32,6 +32,7 @@ data T
   | RepeatedParameter
   | MisplacedVariadic
   | MalformedCond
+  | DividedByZero
 
     deriving (Eq, Ord)
 
@@ -81,3 +82,4 @@ instance Show T where
   show MisplacedVariadic
     = "Misplaced variadic parameter found. The +rest parameter is a special syntax for variadics, and show be placed by the end of the parameter list."
   show MalformedCond = "Malformed cond found."
+  show DividedByZero = "Divided by zero"

@@ -1,5 +1,6 @@
 module Pipoquinha.BuiltIn where
 
+import           GHC.Show                       ( Show(..) )
 import           Protolude
 
 data T
@@ -8,16 +9,16 @@ data T
   | Negate
   | Invert
   | Eql
-  | Def
   | Defn
   | Defmacro
+  | Def
   | Fn
   | Let
   | If
   | Read
   | Eval
-  | Print
   | PrintLn
+  | Print
   | Loop
   | Do
   | Not
@@ -32,10 +33,6 @@ data T
   | Lt
   | Numerator
   | Set
-  | Concat
-  | Str
-  | Split
-  | Cond
   | IsFunction
   | IsBool
   | IsError
@@ -44,5 +41,52 @@ data T
   | IsString
   | IsNumber
   | IsPair
+  | Concat
+  | Str
+  | Split
+  | Cond
 
-  deriving (Eq, Show, Ord)
+  deriving (Eq, Ord, Enum, Bounded)
+
+instance Show T where
+  show Add        = "add"
+  show Mul        = "mul"
+  show Negate     = "negate"
+  show Invert     = "invert"
+  show Eql        = "eq"
+  show Defn       = "defn"
+  show Defmacro   = "defmacro"
+  show Def        = "def"
+  show Fn         = "fn"
+  show Let        = "let"
+  show If         = "if"
+  show Cond       = "cond"
+  show Read       = "read"
+  show Eval       = "eval"
+  show PrintLn    = "println"
+  show Print      = "print"
+  show Loop       = "loop"
+  show Do         = "do"
+  show Not        = "not"
+  show And        = "and"
+  show Or         = "or"
+  show Cons       = "cons"
+  show MakeList   = "make-list"
+  show Car        = "car"
+  show Cdr        = "cdr"
+  show Quote      = "quote"
+  show Gt         = "gt"
+  show Lt         = "lt"
+  show Numerator  = "numerator"
+  show Set        = "set"
+  show Concat     = "concat"
+  show IsString   = "string?"
+  show Str        = "str"
+  show Split      = "split"
+  show IsFunction = "function?"
+  show IsBool     = "bool?"
+  show IsError    = "error?"
+  show IsSymbol   = "symbol?"
+  show IsMacro    = "macro?"
+  show IsNumber   = "number?"
+  show IsPair     = "pair?"

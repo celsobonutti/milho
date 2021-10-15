@@ -70,6 +70,10 @@ tests:
       - -with-rtsopts=-N
     dependencies:
       - milho
+      - hspec
+      - QuickCheck
+      - quickcheck-text
+      - string-interpolate
 
 when:
   condition: flag(incomplete-error)

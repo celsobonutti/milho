@@ -64,6 +64,12 @@ type ThrowCapable m = HasThrow "runtimeError" Error.T m
 
 type CatchCapable m = HasCatch "runtimeError" Error.T m
 
+empty :: IO (T sexp)
+empty = do
+  let table = Table { variables = Map.empty, parent = Nothing }
+  tableRef <- newIORef table
+  return T { table = tableRef }
+
 insertValue :: StateCapable sexp m => Text -> sexp -> m ()
 insertValue key value = do
   valueRef <- liftIO $ newIORef value

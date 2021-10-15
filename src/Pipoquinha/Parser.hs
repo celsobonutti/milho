@@ -1,15 +1,19 @@
 module Pipoquinha.Parser
   ( sExpLine
   , sExpFile
+  , parseFile
+  , parseExpression
   ) where
 
 import           Control.Monad.Combinators.NonEmpty
                                                 ( endBy1 )
 import           Control.Monad.Fail             ( fail )
 import           Data.List.NonEmpty
+import           Data.Text                      ( strip )
 import           Data.Void
 import qualified Pipoquinha.BuiltIn            as BuiltIn
 import           Pipoquinha.BuiltIn
+import           Pipoquinha.Error               ( T(..) )
 import qualified Pipoquinha.SExp               as SExp
 import           Pipoquinha.SExp
 import           Protolude               hiding ( bool
@@ -24,55 +28,12 @@ import qualified Text.Megaparsec.Char.Lexer    as L
 
 type Parser = Parsec Void Text
 
+builtInChoice :: [Parser BuiltIn.T]
+builtInChoice = fmap toChoice [minBound ..]
+  where toChoice builtIn = try (builtIn <$ string (show builtIn))
+
 builtIn :: Parser BuiltIn.T
-builtIn =
-  string ".__"
-    *>  try
-          (choice
-            [ Add <$ string "add"
-            , Mul <$ string "mul"
-            , Negate <$ string "negate"
-            , Invert <$ string "invert"
-            , Eql <$ string "eq"
-            , Defn <$ string "defn"
-            , Defmacro <$ string "defmacro"
-            , Def <$ string "def"
-            , Fn <$ string "fn"
-            , Let <$ string "let"
-            , If <$ string "if"
-            , Cond <$ string "cond"
-            , Read <$ string "read"
-            , Eval <$ string "eval"
-            , PrintLn <$ string "println"
-            , Print <$ string "print"
-            , Loop <$ string "loop"
-            , Do <$ string "do"
-            , Not <$ string "not"
-            , And <$ string "and"
-            , Or <$ string "or"
-            , Cons <$ string "cons"
-            , MakeList <$ string "make-list"
-            , Car <$ string "car"
-            , Cdr <$ string "cdr"
-            , Quote <$ string "quote"
-            , Gt <$ string "gt"
-            , Lt <$ string "lt"
-            , Numerator <$ string "numerator"
-            , Set <$ string "set"
-            , Concat <$ string "concat"
-            , IsString <$ string "string?"
-            , Str <$ string "str"
-            , Split <$ string "split"
-            , IsFunction <$ string "function?"
-            , IsBool <$ string "bool?"
-            , IsError <$ string "error?"
-            , IsSymbol <$ string "symbol?"
-            , IsMacro <$ string "macro?"
-            , IsNumber <$ string "number?"
-            , IsPair <$ string "pair?"
-            ]
-          )
-    <?> "built-in"
+builtIn = string ".__" *> try (choice builtInChoice) <?> "built-in"
 
 number :: Parser Rational
 number =
@@ -108,7 +69,7 @@ pair = do
   head <- sExp `endBy1` space1
   _    <- char '.' *> space1
   tail <- sExp
-  _    <- char ')' *> space
+  _    <- space <* char ')'
   return (make head tail) <?> "pair"
  where
   make (x :| []) y = x :.: y
@@ -117,7 +78,7 @@ pair = do
 
 list :: Parser [SExp.T]
 list =
-  between (char '(') (char ')') (space *> sExp `sepBy` space1 <* space)
+  between (char '(' *> space) (space <* char ')') (sExp `sepEndBy` space1)
     <?> "list"
 
 quotedSExp :: Parser SExp.T
@@ -154,10 +115,21 @@ sExp =
       , Pair . List <$> list
       , quotedSExp
       ]
-    <?> "atom"
+    <?> "SExpression"
 
 sExpLine :: Parser SExp.T
 sExpLine = sExp <* eof
 
 sExpFile :: Parser [SExp.T]
 sExpFile = between space space (sExp `sepBy` space1) <* eof
+
+parseFile :: Text -> Either Text [SExp.T]
+parseFile = first (toS . errorBundlePretty) . parse sExpFile mempty . strip
+
+parseExpression :: Text -> SExp.T
+parseExpression =
+  fromEither (Error . ParserError . toS . errorBundlePretty)
+    . parse sExpLine mempty
+ where
+  fromEither f (Left  a) = f a
+  fromEither _ (Right b) = b

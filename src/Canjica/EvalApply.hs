@@ -127,6 +127,7 @@ apply (BuiltIn Negate : arguments) =
         }
 
 apply [BuiltIn Invert, atom] = eval atom >>= \case
+    Number 0 -> throw @"runtimeError" DividedByZero
     Number x -> return . Number $ denominator x % numerator x
     value    -> throw @"runtimeError" TypeMismatch { expected = Type.Number
                                                    , found = SExp.toType value

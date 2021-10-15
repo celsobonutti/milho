@@ -36,10 +36,8 @@ main = do
   case parseFile . decodeUtf8 $ basicOps of
     Left  e        -> putStrLn e
     Right builtIns -> do
-      let table = Environment.Table { variables = Map.empty, parent = Nothing }
-      tableRef <- newIORef table
-      let environment = Environment.T { table = tableRef }
-      mapM_ (\atom -> Environment.runM (eval atom) environment) builtIns
+      environment <- Environment.empty
+      mapM_ (runExpression environment) builtIns
       args <- getArgs
       case args of
         ["repl"] -> do
@@ -48,10 +46,13 @@ main = do
         ["run", path] -> do
           content <- liftIO $ readFile path
           case parseFile content of
-            Left  e            -> putStrLn e
-            Right instructions -> mapM_ (\atom -> Environment.runM (eval atom) environment) instructions
+            Left e -> putStrLn e
+            Right instructions ->
+              mapM_ (runExpression environment) instructions
         _ -> putStrLn ("Invalid option." :: Text)
 
+runExpression environment expression =
+  Environment.runM (eval expression) environment
 
 run :: (StateCapable SExp.T m, ReaderCapable SExp.T m, CatchCapable m) => m ()
 run = do
