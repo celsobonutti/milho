@@ -9,6 +9,7 @@ import           Canjica.Function               ( functionArguments
 import qualified Canjica.Let                   as Let
 import qualified Canjica.List                  as List
 import qualified Canjica.Number                as Number
+import qualified Canjica.String                as String
 import           Capability.Error        hiding ( (:.:) )
 import           Capability.Reader       hiding ( (:.:) )
 import           Capability.State        hiding ( (:.:) )
@@ -16,8 +17,7 @@ import           Data.IORef
 import qualified Data.Map                      as Map
 import           Pipoquinha.BuiltIn      hiding ( T )
 import qualified Pipoquinha.Environment        as Environment
-import           Pipoquinha.Environment         ( CatchCapable
-                                                , ReaderCapable
+import           Pipoquinha.Environment         ( ReaderCapable
                                                 , StateCapable
                                                 , ThrowCapable
                                                 )
@@ -29,7 +29,6 @@ import qualified Pipoquinha.Type               as Type
 import           Protolude               hiding ( MonadReader
                                                 , ask
                                                 , asks
-                                                , catch
                                                 , get
                                                 , gets
                                                 , local
@@ -45,48 +44,31 @@ throwIfError = \case
     Right value -> return value
 
 eval
-    :: ( ReaderCapable SExp.T m
-       , CatchCapable m
-       , ThrowCapable m
-       , StateCapable SExp.T m
-       )
+    :: (ReaderCapable SExp.T m, ThrowCapable m, StateCapable SExp.T m)
     => SExp.T
     -> m SExp.T
-eval atom = catch @"runtimeError"
-    (case atom of
-        n@(Number   _) -> return n
-        f@(Function _) -> return f
-        m@(Macro    _) -> return m
-        b@(Bool     _) -> return b
-        e@(Error    _) -> return e
-        s@(Str      _) -> return s
-        b@(BuiltIn  _) -> return b
-        Symbol name    -> do
-            join (asks @"table" (Environment.getValue name))
-                >>= liftIO
-                .   readIORef
-        Pair (List l ) -> apply l
-        Pair (_ :.: _) -> throw @"runtimeError" $ CannotApply Type.Pair
-        Pair _         -> return $ Pair Nil
-    )
-    (return . Error)
+eval atom = case atom of
+    n@(Number   _) -> return n
+    f@(Function _) -> return f
+    m@(Macro    _) -> return m
+    b@(Bool     _) -> return b
+    e@(Error    _) -> return e
+    s@(String   _) -> return s
+    b@(BuiltIn  _) -> return b
+    Symbol name    -> do
+        join (asks @"table" (Environment.getValue name)) >>= liftIO . readIORef
+    Pair (List l ) -> apply l
+    Pair (_ :.: _) -> throw @"runtimeError" $ CannotApply Type.Pair
+    Pair _         -> return $ Pair Nil
 
 batchEval
-    :: ( ReaderCapable SExp.T m
-       , CatchCapable m
-       , ThrowCapable m
-       , StateCapable SExp.T m
-       )
+    :: (ReaderCapable SExp.T m, ThrowCapable m, StateCapable SExp.T m)
     => [SExp.T]
     -> m [SExp.T]
 batchEval = traverse eval
 
 apply
-    :: ( ReaderCapable SExp.T m
-       , CatchCapable m
-       , ThrowCapable m
-       , StateCapable SExp.T m
-       )
+    :: (ReaderCapable SExp.T m, ThrowCapable m, StateCapable SExp.T m)
     => [SExp.T]
     -> m SExp.T
 
@@ -379,6 +361,52 @@ apply (BuiltIn Cdr : arguments) =
         , functionName  = Just "cdr"
         }
 
+{- String operations -}
+
+apply [BuiltIn Str, argument] = eval argument >>= \case
+    String s -> return $ String s
+    value    -> return . String . show $ value
+
+apply (BuiltIn Str : arguments) =
+    throw @"runtimeError" $ WrongNumberOfArguments
+        { expectedCount = 1
+        , foundCount    = length arguments
+        , functionName  = Just "str"
+        }
+
+apply [BuiltIn Concat, first, second] = do
+    fst <- eval first
+    snd <- eval second
+    throwIfError $ String.concat fst snd
+
+apply (BuiltIn Concat : arguments) =
+    throw @"runtimeError" $ WrongNumberOfArguments
+        { expectedCount = 2
+        , foundCount    = length arguments
+        , functionName  = Just "concat"
+        }
+
+apply [BuiltIn Split, first, second] = do
+    on     <- eval first
+    string <- eval second
+    throwIfError $ String.split on string
+
+apply (BuiltIn Split : arguments) =
+    throw @"runtimeError" $ WrongNumberOfArguments
+        { expectedCount = 2
+        , foundCount    = length arguments
+        , functionName  = Just "split"
+        }
+
+apply [BuiltIn Len, argument] = eval argument <&> String.len >>= throwIfError
+
+apply (BuiltIn Len : arguments) =
+    throw @"runtimeError" $ WrongNumberOfArguments
+        { expectedCount = 1
+        , foundCount    = length arguments
+        , functionName  = Just "len"
+        }
+
 {- Remaining operations -}
 
 apply (s@(Symbol _) : as) = do
@@ -395,7 +423,7 @@ apply (Pair   Nil       : _) = throw @"runtimeError" $ CannotApply Type.Pair
 
 apply (Bool   _         : _) = throw @"runtimeError" $ CannotApply Type.Boolean
 
-apply (Str    _         : _) = throw @"runtimeError" $ CannotApply Type.String
+apply (String _         : _) = throw @"runtimeError" $ CannotApply Type.String
 
 apply (Number _         : _) = throw @"runtimeError" $ CannotApply Type.Number
 

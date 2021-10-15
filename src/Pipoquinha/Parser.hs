@@ -57,6 +57,10 @@ builtIn =
             , Lt <$ string "lt"
             , Numerator <$ string "numerator"
             , Set <$ string "set"
+            , Concat <$ string "concat"
+            , Str <$ string "str"
+            , Split <$ string "split"
+            , Len <$ string "len"
             ]
           )
     <?> "built-in"
@@ -135,7 +139,7 @@ sExp =
       , Bool <$> bool
       , try (Number <$> number)
       , Symbol <$> pSymbol
-      , Str <$> str
+      , String <$> str
       , BuiltIn <$> builtIn
       , try (Pair <$> pair)
       , Pair . List <$> list

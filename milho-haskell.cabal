@@ -37,6 +37,7 @@ library
       Canjica.Let
       Canjica.List
       Canjica.Number
+      Canjica.String
       Pipoquinha.BuiltIn
       Pipoquinha.Environment
       Pipoquinha.Error

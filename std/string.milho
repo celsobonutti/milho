@@ -1,0 +1,11 @@
+(defn join (separator list)
+      (if (null? list)
+          ""
+          (let (head (car list) tail (cdr list))
+               (if (null? tail)
+                   head
+                   (concat (concat head separator)
+                           (join separator tail))))))
+
+(defn concat-all (+rest)
+      (join "" +rest))

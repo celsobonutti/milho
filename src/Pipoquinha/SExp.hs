@@ -55,7 +55,7 @@ data T
   | Error Error.T
   | Symbol Text
   | Macro Function
-  | Str Text
+  | String Text
   | BuiltIn BuiltIn.T
   | Number Rational
   | Pair Pair
@@ -67,7 +67,7 @@ instance Show T where
   show (Error    e) = toS $ "Error: " <> show e
   show (Function f) = "fn#" <> show f
   show (Macro    m) = "macro#" <> show m
-  show (Str      s) = toS s
+  show (String   s) = "\"" <> toS s <> "\""
   show (BuiltIn  b) = "BuilIn." <> show b
   show (Pair     p) = "(" ++ show p ++ ")"
   show (Number n)
@@ -84,7 +84,7 @@ toType (Bool     _) = Type.Boolean
 toType (Error    _) = Type.Error
 toType (Symbol   _) = Type.Symbol
 toType (Macro    _) = Type.Macro
-toType (Str      _) = Type.String
+toType (String   _) = Type.String
 toType (BuiltIn  _) = Type.BuiltIn
 toType (Number   _) = Type.Number
 toType (Pair     _) = Type.Pair

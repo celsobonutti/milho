@@ -31,4 +31,8 @@ data T
   | Lt
   | Numerator
   | Set
+  | Concat
+  | Str
+  | Split
+  | Len
   deriving (Eq, Show, Ord)

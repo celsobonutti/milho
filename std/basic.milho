@@ -26,6 +26,10 @@
 (def numerator .__numerator)
 (def or .__or)
 (def and .__and)
+(def concat .__concat)
+(def str .__str)
+(def len .__len)
+(def split .__split)
 
 (defn inspect (f)
     (let (y 0)

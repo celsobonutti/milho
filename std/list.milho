@@ -33,3 +33,8 @@
   (if (null? list1)
       list2
       (cons (car list1) (append (cdr list1) list2))))
+
+(defn size (list)
+      (if (null? list)
+          0
+          (+ 1 (size (cdr list)))))
