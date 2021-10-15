@@ -11,6 +11,7 @@
 (def fn .__fn)
 (def let .__let)
 (def if .__if)
+(def cond .__cond)
 (def read .__read)
 (def eval .__eval)
 (def print .__print)
@@ -37,6 +38,7 @@
 (def string? .__string?)
 (def number? .__number?)
 (def pair? .__pair?)
+(def eq? .__eq)
 
 (defn atom? (x) (not (pair? x)))
 
@@ -48,3 +50,5 @@
                  (do
                   (set! y (+ 1 y))
                   (f z))))))
+
+(defn id (x) x)

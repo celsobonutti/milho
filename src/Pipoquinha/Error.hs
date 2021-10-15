@@ -31,6 +31,7 @@ data T
   | NotParameterList
   | RepeatedParameter
   | MisplacedVariadic
+  | MalformedCond
 
     deriving (Eq, Ord)
 
@@ -79,3 +80,4 @@ instance Show T where
     = "Non-unique parameter name found. A function cannot have two parameters with the same name."
   show MisplacedVariadic
     = "Misplaced variadic parameter found. The +rest parameter is a special syntax for variadics, and show be placed by the end of the parameter list."
+  show MalformedCond = "Malformed cond found."

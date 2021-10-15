@@ -38,3 +38,7 @@
       (if (null? list)
           0
           (+ 1 (size (cdr list)))))
+
+(def cadr (-> car cdr))
+(def caddr (-> car cdr cdr))
+(def cadddr (-> car cdr cdr))

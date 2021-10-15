@@ -169,6 +169,8 @@ apply (BuiltIn And : values) =
 apply (BuiltIn Or : values) =
     batchEval values <&> foldM Boolean.or (Bool False) >>= throwIfError
 
+{- Control flow operations -}
+
 apply [BuiltIn If, predicate, consequent, alternative] =
     eval predicate >>= \case
         Bool False -> eval alternative
@@ -180,7 +182,29 @@ apply (BuiltIn If : arguments) = throw @"runtimeError" $ WrongNumberOfArguments
     , functionName  = Just "if"
     }
 
-{- Value definition operations -}
+apply (BuiltIn Cond : arguments) = case arguments of
+    [] -> throw @"runtimeError" $ NotEnoughArguments
+        { expectedCount = 1
+        , foundCount    = length arguments
+        , functionName  = Just "cond"
+        }
+
+    arguments | Just conditions <- mapM validateCondition arguments -> do
+        evaluated <- mapM evaluateCondition conditions
+        case find ((/= Bool False) . fst) evaluated of
+            Nothing                      -> return $ Pair Nil
+            Just (condition, consequent) -> eval consequent
+
+    _ -> throw @"runtimeError" $ MalformedCond
+
+  where
+    validateCondition (Pair (List [condition, consequent])) =
+        Just (condition, consequent)
+    validateCondition _ = Nothing
+
+    evaluateCondition (condition, consequent) = do
+        evaluatedCondition <- eval condition
+        return (evaluatedCondition, consequent)
 
 apply [BuiltIn Def, Symbol name, atom] = do
     evaluatedSExp <- eval atom

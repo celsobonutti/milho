@@ -40,6 +40,7 @@ builtIn =
             , Fn <$ string "fn"
             , Let <$ string "let"
             , If <$ string "if"
+            , Cond <$ string "cond"
             , Read <$ string "read"
             , Eval <$ string "eval"
             , Print <$ string "print"

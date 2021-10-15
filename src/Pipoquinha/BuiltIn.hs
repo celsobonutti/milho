@@ -35,6 +35,7 @@ data T
   | Str
   | Split
   | Len
+  | Cond
   | IsFunction
   | IsBool
   | IsError

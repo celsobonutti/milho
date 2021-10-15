@@ -1,0 +1,21 @@
+(defn mcons (car cdr)
+      (let
+        (mcar car mcdr cdr)
+        (fn (message)
+              (cond ((eq? message 'set-mcar) (fn (value) (set! mcar value)))
+                    ((eq? message 'set-mcdr) (fn (value) (set! mcdr value)))
+                    ((eq? message 'mcar) mcar)
+                    ((eq? message 'mcdr) mcdr)))))
+
+
+(defn set-mcar! (mlist value)
+      ((mlist 'set-mcar) value))
+
+(defn set-mcdr! (mlist value)
+      ((mlist 'set-mcdr) value))
+
+(defn mcar (mlist)
+      (mlist 'mcar))
+
+(defn mcdr (mlist)
+      (mlist 'mcdr))
