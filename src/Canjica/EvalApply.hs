@@ -314,8 +314,30 @@ apply (BuiltIn Eval : arguments) =
         , foundCount    = length arguments
         , functionName  = Just "eval"
         }
+
+apply (BuiltIn PrintLn : rest) =
+    batchEval rest
+        >>= putStrLn
+        .   ("\"" <>)
+        .   (<> "\"")
+        .   unwords
+        .   map showUnlessString
+        >>  return (Pair Nil)
+  where
+    showUnlessString (String s) = s
+    showUnlessString other      = show other
+
 apply (BuiltIn Print : rest) =
-    batchEval rest >>= putStr . unwords . map show >> return (Pair Nil)
+    batchEval rest
+        >>= putStr
+        .   ("\"" <>)
+        .   (<> "\"")
+        .   unwords
+        .   map showUnlessString
+        >>  return (Pair Nil)
+  where
+    showUnlessString (String s) = s
+    showUnlessString other      = show other
 
 apply [BuiltIn Loop, procedure] = forever (eval procedure)
 

@@ -17,6 +17,7 @@ data T
   | Read
   | Eval
   | Print
+  | PrintLn
   | Loop
   | Do
   | Not

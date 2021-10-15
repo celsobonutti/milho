@@ -43,13 +43,3 @@
 (def cadr (-> car cdr))
 (def caddr (-> car cdr cdr))
 (def cadddr (-> car cdr cdr))
-
-(defmacro my-cond (+rest)
-          (if (null? '+rest)
-              '()
-              (if (car (car '+rest))
-                  (cadr (car '+rest))
-                  (let (next (cdr '+rest))
-                       (my-cond next)))))
-
-(def tc (my-cond (False 200) (True 250)))

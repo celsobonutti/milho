@@ -43,6 +43,7 @@ builtIn =
             , Cond <$ string "cond"
             , Read <$ string "read"
             , Eval <$ string "eval"
+            , PrintLn <$ string "println"
             , Print <$ string "print"
             , Loop <$ string "loop"
             , Do <$ string "do"
