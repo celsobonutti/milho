@@ -209,6 +209,9 @@ apply (BuiltIn Cond : arguments) = case arguments of
         evaluatedCondition <- eval condition
         return (evaluatedCondition, consequent)
 
+{-  Variable definition/mutation operations
+    def, defn, defmacro, set!, let, guard   -}
+
 apply [BuiltIn Def, Symbol name, atom] = do
     evaluatedSExp <- eval atom
     environment   <- ask @"table"
@@ -265,7 +268,23 @@ apply (BuiltIn Let : arguments) =
         , functionName  = Just "let"
         }
 
-{- Function/macro operations -}
+apply [BuiltIn Guard, Pair (List clauses), body] = do
+    evaluatedClauses <- batchEval clauses
+    let zipped = zip evaluatedClauses clauses
+        failed = find ((== Bool False) . fst) zipped
+    case failed of
+        Just (_, clause) ->
+            throw @"runtimeError" $ FailedGuardClause (show clause)
+        Nothing -> eval body
+
+apply (BuiltIn Guard : arguments) =
+    throw @"runtimeError" $ WrongNumberOfArguments
+        { expectedCount = 2
+        , foundCount    = length arguments
+        , functionName  = Just "guard"
+        }
+{-  Function/macro operations
+    fn, funcion application and macro expansion -}
 
 apply (BuiltIn Fn : rest) = do
     environment <- ask @"table"
@@ -292,7 +311,8 @@ apply (Macro macro : values) = do
 
     local @"table" (const functionEnvironment) (eval expanded)
 
-{- REPL -}
+{-  REPL
+    Read, Eval, Print, Loop -}
 
 apply [BuiltIn Read] = do
     input <- liftIO getLine
@@ -361,7 +381,8 @@ apply (BuiltIn Quote : arguments) =
 
 apply (BuiltIn Do : rest)      = foldM (const eval) (Pair Nil) rest
 
-{- List operations -}
+{-  List operations
+    cons, car, cdr -}
 
 apply [BuiltIn Cons, car, cdr] = do
     car <- eval car
@@ -405,7 +426,8 @@ apply (BuiltIn Cdr : arguments) =
         , functionName  = Just "cdr"
         }
 
-{- String operations -}
+{-  String operations
+    str, concat, split -}
 
 apply [BuiltIn Str, argument] = eval argument >>= \case
     String s -> return $ String s
@@ -442,7 +464,8 @@ apply (BuiltIn Split : arguments) =
         , functionName  = Just "split"
         }
 
-{- Type operations -}
+{-  Type operations
+    The ones that check if a thing has a type -}
 
 apply [BuiltIn IsFunction, argument] = do
     result <- eval argument
@@ -532,7 +555,8 @@ apply (BuiltIn IsPair : arguments) =
         , functionName  = Just "pair?"
         }
 
-{- Remaining operations -}
+{-  Remaining operations
+    Evaluating symbols, lists, etc. -}
 
 apply (s@(Symbol _) : as) = do
     operator <- eval s

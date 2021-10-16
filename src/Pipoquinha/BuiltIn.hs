@@ -44,6 +44,7 @@ data T
   | Str
   | Split
   | Cond
+  | Guard
 
   deriving (Eq, Ord, Enum, Bounded)
 
@@ -88,3 +89,4 @@ instance Show T where
   show IsMacro    = "macro?"
   show IsNumber   = "number?"
   show IsPair     = "pair?"
+  show Guard      = "guard"

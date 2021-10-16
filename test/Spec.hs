@@ -107,9 +107,9 @@ prop_Map numbers = monadicIO $ do
 
 generateObject :: [Integer] -> Text
 generateObject numbers = [i|(do
-                            (def inc (inspect add-one))
-                            (map inc (list #{unwords . fmap show $ numbers}))
-                            (inc 'retrieve))|]
+                              (def inc (inspect add-one))
+                              (map inc (list #{unwords . fmap show $ numbers}))
+                              (inc 'retrieve))|]
 
 prop_Object numbers = monadicIO $ do
     result <- run . execute $ generateObject numbers
@@ -117,7 +117,29 @@ prop_Object numbers = monadicIO $ do
     assert $ result == expected
     where expected = Number . fromIntegral . length $ numbers
 
+generateMlist :: Integer -> Integer -> Integer -> Text
+generateMlist fstInitial fstFinal snd = [i|(do
+                                            (def fst (mcons #{fstInitial} '()))
+                                            (def snd (mcons #{snd} fst))
+                                            (set-mcar! fst #{fstFinal})
+                                            (mcar (mcdr snd)))|]
 
+prop_Mlist fstInitial fstFinal snd = monadicIO $ do
+    result <- run . execute $ generateMlist fstInitial fstFinal snd
+
+    assert $ result == expected
+    where expected = Number . fromIntegral $ fstFinal
+
+generateGuard :: Integer -> Integer -> Text
+generateGuard clauseNumber body = [i|(guard ((> 20 #{clauseNumber})) #{body})|]
+
+prop_Guard clauseNumber body = monadicIO $ do
+    result <- run . execute $ generateGuard clauseNumber body
+
+    assert $ result == expected
+    where expected
+            | 20 > clauseNumber = Number . fromIntegral $ body
+            | otherwise = Error . FailedGuardClause $ [i|('> 20 #{clauseNumber})|]
 
 return []
 
