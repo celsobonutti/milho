@@ -11,3 +11,6 @@
 (defn even? (x) (= 1 (denom (/ x 2))))
 
 (defn add-one (x) (+ x 1))
+
+(defn pow (x y)
+      (eval (cons * (make-list y x))))
