@@ -375,9 +375,7 @@ apply (BuiltIn Cons : arguments) =
         , functionName  = Just "cons"
         }
 
-apply (BuiltIn MakeList : list) = batchEval list <&> Pair . List
-
-apply [BuiltIn Car, atom]       = eval atom >>= \case
+apply [BuiltIn Car, atom] = eval atom >>= \case
     Pair Nil       -> return $ Pair Nil
     Pair (x ::: _) -> return x
     Pair (x :.: _) -> return x

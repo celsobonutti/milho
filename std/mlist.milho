@@ -1,12 +1,21 @@
 (defn mcons (car cdr)
-      (let
-        (mcar car mcdr cdr)
-        (fn (message)
-              (cond ((eq? message 'set-mcar) (fn (value) (set! mcar value)))
-                    ((eq? message 'set-mcdr) (fn (value) (set! mcdr value)))
-                    ((eq? message 'mcar) mcar)
-                    ((eq? message 'mcdr) mcdr)))))
+  (let
+    (mcar car mcdr cdr)
+    (fn (message)
+          (cond ((eq? message 'set-mcar) (fn (value) (set! mcar value)))
+                ((eq? message 'set-mcdr) (fn (value) (set! mcdr value)))
+                ((eq? message 'mcar) mcar)
+                ((eq? message 'mcdr) mcdr)))))
 
+(defn mlist-from-list (elements)
+  (if (null? elements)
+    '()
+    (let (head (car elements)
+          tail (cdr elements))
+            (mcons head (mlist-from-list tail)))))
+
+(defn mlist
+  ((+rest) (mlist-from-list +rest)))
 
 (defn set-mcar! (mlist value)
       ((mlist 'set-mcar) value))

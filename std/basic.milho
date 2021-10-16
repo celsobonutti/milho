@@ -20,7 +20,6 @@
 (def do .__do)
 (def not .__not)
 (def cons .__cons)
-(def make-list .__make-list)
 (def car .__car)
 (def cdr .__cdr)
 (def quote .__quote)

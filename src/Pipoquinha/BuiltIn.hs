@@ -25,7 +25,6 @@ data T
   | And
   | Or
   | Cons
-  | MakeList
   | Car
   | Cdr
   | Quote
@@ -71,7 +70,6 @@ instance Show T where
   show And        = "and"
   show Or         = "or"
   show Cons       = "cons"
-  show MakeList   = "make-list"
   show Car        = "car"
   show Cdr        = "cdr"
   show Quote      = "quote"

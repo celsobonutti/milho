@@ -1,5 +1,5 @@
 (defn -
-    ((x) (negate x))
+  ((x) (negate x))
   ((x +rest) (eval (append '(+ x) (map negate +rest)))))
 
 (defn /
