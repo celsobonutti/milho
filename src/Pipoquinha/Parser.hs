@@ -91,7 +91,7 @@ quotedSExp =
     <?> "quote"
 
 invalidSymbolChars :: [Char]
-invalidSymbolChars = "[]() \t\r\n\"'"
+invalidSymbolChars = "[]() \t\r\n\"';"
 
 invalidSymbolStart :: [Char]
 invalidSymbolStart = ".1234567890" <> invalidSymbolChars
@@ -117,11 +117,20 @@ sExp =
       ]
     <?> "SExpression"
 
+lineComment :: Parser ()
+lineComment = L.skipLineComment ";;"
+
+blockComment :: Parser ()
+blockComment = L.skipBlockComment "[-" "-]"
+
+discardSpace :: Parser ()
+discardSpace = L.space space1 lineComment blockComment
+
 sExpLine :: Parser SExp.T
 sExpLine = sExp <* eof
 
 sExpFile :: Parser [SExp.T]
-sExpFile = between space space (sExp `sepBy` space1) <* eof
+sExpFile = optional discardSpace *> (sExp `sepEndBy` discardSpace) <* eof
 
 parseFile :: Text -> Either Text [SExp.T]
 parseFile = first (toS . errorBundlePretty) . parse sExpFile mempty . strip

@@ -1,4 +1,6 @@
-(.__def def .__def)
+[- Built-in and basic function definitions  -]
+
+(.__def def .__def) ;; Define def using built-in since it's not declared yet.
 (def defn .__defn)
 (def defmacro .__defmacro)
 (def + .__add)
@@ -40,14 +42,5 @@
 (def eq? .__eq)
 
 (defn atom? (x) (not (pair? x)))
-
-(defn inspect (f)
-    (let (y 0)
-         (fn (z)
-             (if (= z 'retrieve)
-                 y
-                 (do
-                  (set! y (+ 1 y))
-                  (f z))))))
 
 (defn id (x) x)
