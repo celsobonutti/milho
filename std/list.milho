@@ -1,5 +1,11 @@
 (defn null? (x) (= '() x))
 
+(defn make-list (size value)
+      (if (< size 1)
+          '()
+          (cons value
+                (make-list (- size 1) value))))
+
 (defn list (+rest)
       +rest)
 
