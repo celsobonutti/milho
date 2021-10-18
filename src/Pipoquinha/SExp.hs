@@ -72,6 +72,9 @@ instance Show T where
     | denominator n == 1 = show $ numerator n
     | otherwise          = show (numerator n) ++ "/" ++ show (denominator n)
 
+pattern Quoted x <- Pair (List [BuiltIn BuiltIn.Quote, x]) where
+  Quoted x = Pair (List [BuiltIn BuiltIn.Quote, x])
+
 isSymbol :: T -> Bool
 isSymbol (Symbol _) = True
 isSymbol _          = False

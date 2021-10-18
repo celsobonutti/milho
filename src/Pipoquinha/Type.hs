@@ -10,4 +10,5 @@ data T
   | Macro
   | String
   | Number
+  | QuotedSymbol
   | Pair deriving (Eq, Ord, Show)

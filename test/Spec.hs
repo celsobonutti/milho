@@ -188,6 +188,15 @@ prop_Import value = monadicIO $ do
 
     assert $ result == (Number . fromIntegral $ value * 2)
 
+generateScopedImport :: Integer -> Text
+generateScopedImport value = [i|(do
+                            (import "./examples/double.milho" 'double)
+                            (double::double #{value}))|]
+
+prop_ScopedImport value = monadicIO $ do
+    result <- run . execute $ generateImport value
+
+    assert $ result == (Number . fromIntegral $ value * 2)
 return []
 
 main = $quickCheckAll

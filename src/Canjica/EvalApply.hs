@@ -522,18 +522,16 @@ apply (BuiltIn IsPair : arguments) =
 {- Error handling
    raise, call-with-error-handler -}
 
-apply [BuiltIn Raise, codeArg, messageArg] = do
-    code    <- eval codeArg
-    message <- eval messageArg
+apply [BuiltIn Raise, code, message] = do
     case (code, message) of
-        (Symbol code, String message) ->
+        (Quoted (Symbol code), String message) ->
             throw @"runtimeError" $ UserRaised code message
         (Symbol code, invalidMessage) -> throw @"runtimeError" $ TypeMismatch
             { expected = Type.String
             , found    = SExp.toType invalidMessage
             }
         (invalidCode, _) -> throw @"runtimeError" $ TypeMismatch
-            { expected = Type.Symbol
+            { expected = Type.QuotedSymbol
             , found    = SExp.toType invalidCode
             }
 
@@ -570,34 +568,33 @@ apply (BuiltIn ErrorCode : arguments) =
         , functionName  = Just "error-code"
         }
 
-{- import -}
+{- Import operations -}
 
-apply [BuiltIn Import, String path] = do
-    fileContents <- (liftIO . Import.safelyReadFile $ path) >>= throwIfError
-    functions    <- throwIfError (first ParserError $ parseFile fileContents)
-    mapM_ eval functions
-    return (Pair Nil)
+apply [BuiltIn Import, pathArg] = case pathArg of
+    String path -> do
+        fileContents <- (liftIO . Import.safelyReadFile $ path) >>= throwIfError
+        functions <- throwIfError (first ParserError $ parseFile fileContents)
+        mapM_ eval functions
+        return (Pair Nil)
+    invalidPath -> throw @"runtimeError" $ TypeMismatch
+        { expected = Type.String
+        , found    = SExp.toType invalidPath
+        }
 
-apply [BuiltIn Import, String path, Symbol scope] = do
-    fileContents <- (liftIO . Import.safelyReadFile $ path) >>= throwIfError
-    functions    <- throwIfError (first ParserError $ parseFile fileContents)
-    mapM_ (eval . Import.renameDef scope) functions
-    return (Pair Nil)
-
-apply [BuiltIn Import, invalidPath] = throw @"runtimeError" $ TypeMismatch
-    { expected = Type.String
-    , found    = SExp.toType invalidPath
-    }
-
-apply [BuiltIn Import, String _, invalidScope] =
-    throw @"runtimeError" $ TypeMismatch { expected = Type.String
-                                         , found    = SExp.toType invalidScope
-                                         }
-
-apply [BuiltIn Import, invalidPath, _] = throw @"runtimeError" $ TypeMismatch
-    { expected = Type.String
-    , found    = SExp.toType invalidPath
-    }
+apply [BuiltIn Import, pathArg, scopeArg] = case (pathArg, scopeArg) of
+    (String path, Quoted (Symbol scope)) -> do
+        fileContents <- (liftIO . Import.safelyReadFile $ path) >>= throwIfError
+        functions <- throwIfError (first ParserError $ parseFile fileContents)
+        mapM_ (eval . Import.renameDef scope) functions
+        return (Pair Nil)
+    (String _, invalidScope) -> throw @"runtimeError" $ TypeMismatch
+        { expected = Type.QuotedSymbol
+        , found    = SExp.toType invalidScope
+        }
+    (invalidPath, _) -> throw @"runtimeError" $ TypeMismatch
+        { expected = Type.String
+        , found    = SExp.toType invalidPath
+        }
 
 apply (BuiltIn Import : arguments) =
     throw @"runtimeError" $ WrongNumberOfArguments
