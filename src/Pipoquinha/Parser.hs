@@ -14,6 +14,7 @@ import           Data.Void
 import qualified Pipoquinha.BuiltIn            as BuiltIn
 import           Pipoquinha.BuiltIn
 import           Pipoquinha.Error               ( T(..) )
+import qualified Pipoquinha.Error              as Error
 import qualified Pipoquinha.SExp               as SExp
 import           Pipoquinha.SExp
 import           Protolude               hiding ( bool
@@ -134,6 +135,9 @@ sExpFile = optional discardSpace *> (sExp `sepEndBy` discardSpace) <* eof
 
 parseFile :: Text -> Either Text [SExp.T]
 parseFile = first (toS . errorBundlePretty) . parse sExpFile mempty . strip
+
+parseFileError :: Either Text [SExp.T] -> Either Error.T [SExp.T]
+parseFileError = first ParserError
 
 parseExpression :: Text -> SExp.T
 parseExpression =

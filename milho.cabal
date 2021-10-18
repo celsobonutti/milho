@@ -34,6 +34,7 @@ library
       Canjica.Boolean
       Canjica.EvalApply
       Canjica.Function
+      Canjica.Import
       Canjica.Let
       Canjica.List
       Canjica.Macro

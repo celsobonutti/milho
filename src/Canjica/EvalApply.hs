@@ -7,6 +7,7 @@ import           Canjica.Function               ( ProceedResult(..)
                                                 , functionBody
                                                 , functionEnvironment
                                                 )
+import qualified Canjica.Import                as Import
 import qualified Canjica.Let                   as Let
 import qualified Canjica.List                  as List
 import qualified Canjica.Macro                 as Macro
@@ -569,36 +570,46 @@ apply (BuiltIn ErrorCode : arguments) =
         , functionName  = Just "error-code"
         }
 
-{-  Remaining operations
-    Imports, evaluating symbols, lists, etc.
+{- import -}
 
-    TO-DO:
-        - Safely read file
-        - Scoped imports
--}
+apply [BuiltIn Import, String path] = do
+    fileContents <- (liftIO . Import.safelyReadFile $ path) >>= throwIfError
+    functions    <- throwIfError (first ParserError $ parseFile fileContents)
+    mapM_ eval functions
+    return (Pair Nil)
 
-apply [BuiltIn Import, path] = case path of
-    String path -> do
-        fileContents <- liftIO . readFile $ toS path
+apply [BuiltIn Import, String path, Symbol scope] = do
+    fileContents <- (liftIO . Import.safelyReadFile $ path) >>= throwIfError
+    functions    <- throwIfError (first ParserError $ parseFile fileContents)
+    mapM_ (eval . Import.renameDef scope) functions
+    return (Pair Nil)
 
-        case parseFile fileContents of
-            Left  error  -> throw @"runtimeError" $ ParserError error
+apply [BuiltIn Import, invalidPath] = throw @"runtimeError" $ TypeMismatch
+    { expected = Type.String
+    , found    = SExp.toType invalidPath
+    }
 
-            Right parsed -> do
-                mapM_ eval parsed
-                return (Pair Nil)
+apply [BuiltIn Import, String _, invalidScope] =
+    throw @"runtimeError" $ TypeMismatch { expected = Type.String
+                                         , found    = SExp.toType invalidScope
+                                         }
 
-    invalidPath -> throw @"runtimeError" $ TypeMismatch
-        { expected = Type.String
-        , found    = SExp.toType invalidPath
-        }
+apply [BuiltIn Import, invalidPath, _] = throw @"runtimeError" $ TypeMismatch
+    { expected = Type.String
+    , found    = SExp.toType invalidPath
+    }
 
 apply (BuiltIn Import : arguments) =
     throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 1
+        { expectedCount = 2
         , foundCount    = length arguments
         , functionName  = Just "import"
         }
+
+
+{-  Remaining operations
+    evaluating symbols, lists, etc.
+-}
 
 apply (s@(Symbol _) : as) = do
     operator <- eval s

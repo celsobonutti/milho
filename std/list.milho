@@ -1,4 +1,4 @@
-(defn null? (x) (= '() x))
+(defn null? (value) (eq? '() value))
 
 (defn make-list (size value)
       (if (< size 1)
