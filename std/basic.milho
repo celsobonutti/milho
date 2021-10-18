@@ -41,6 +41,7 @@
 (def raise .__raise)
 (def call-with-error-handler .__call-with-error-handler)
 (def error-code .__error-code)
+(def import .__import)
 
 (defn atom? (value) (not (pair? value)))
 

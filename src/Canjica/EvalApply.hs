@@ -12,7 +12,9 @@ import qualified Canjica.List                  as List
 import qualified Canjica.Macro                 as Macro
 import qualified Canjica.Number                as Number
 import qualified Canjica.String                as String
-import           Capability.Error        hiding ( (:.:) )
+import           Capability.Error        hiding ( (:.:)
+                                                , catchJust
+                                                )
 import           Capability.Reader       hiding ( (:.:) )
 import           Capability.State        hiding ( (:.:) )
 import           Control.Exception.Base         ( runtimeError )
@@ -30,6 +32,7 @@ import           Pipoquinha.Parser             as Parser
 import           Pipoquinha.SExp         hiding ( T )
 import qualified Pipoquinha.SExp               as SExp
 import qualified Pipoquinha.Type               as Type
+import qualified Protolude
 import           Protolude               hiding ( MonadReader
                                                 , ask
                                                 , asks
@@ -43,6 +46,7 @@ import           Protolude               hiding ( MonadReader
 import           Text.Megaparsec                ( errorBundlePretty
                                                 , parse
                                                 )
+
 throwIfError :: CatchCapable m => SExp.Result a -> m a
 throwIfError = \case
     Left  error -> throw @"runtimeError" error
@@ -532,8 +536,7 @@ apply [BuiltIn Raise, codeArg, messageArg] = do
             , found    = SExp.toType invalidCode
             }
 
-apply (BuiltIn Raise : arguments) = do
-    print arguments
+apply (BuiltIn Raise : arguments) =
     throw @"runtimeError" $ WrongNumberOfArguments
         { expectedCount = 2
         , foundCount    = length arguments
@@ -567,7 +570,35 @@ apply (BuiltIn ErrorCode : arguments) =
         }
 
 {-  Remaining operations
-    Evaluating symbols, lists, etc. -}
+    Imports, evaluating symbols, lists, etc.
+
+    TO-DO:
+        - Safely read file
+        - Scoped imports
+-}
+
+apply [BuiltIn Import, path] = case path of
+    String path -> do
+        fileContents <- liftIO . readFile $ toS path
+
+        case parseFile fileContents of
+            Left  error  -> throw @"runtimeError" $ ParserError error
+
+            Right parsed -> do
+                mapM_ eval parsed
+                return (Pair Nil)
+
+    invalidPath -> throw @"runtimeError" $ TypeMismatch
+        { expected = Type.String
+        , found    = SExp.toType invalidPath
+        }
+
+apply (BuiltIn Import : arguments) =
+    throw @"runtimeError" $ WrongNumberOfArguments
+        { expectedCount = 1
+        , foundCount    = length arguments
+        , functionName  = Just "import"
+        }
 
 apply (s@(Symbol _) : as) = do
     operator <- eval s

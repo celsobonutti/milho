@@ -44,6 +44,7 @@ data T
   | Raise
   | CallWithErrorHandler
   | ErrorCode
+  | Import
 
   deriving (Eq, Ord, Enum, Bounded)
 
@@ -88,3 +89,4 @@ instance Show T where
   show Raise                = "raise"
   show CallWithErrorHandler = "call-with-error-handler"
   show ErrorCode            = "error-code"
+  show Import               = "import"

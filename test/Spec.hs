@@ -178,6 +178,16 @@ prop_UserRaise first second = monadicIO $ do
                                          , message   = "Testing raise"
                                          }
 
+generateImport :: Integer -> Text
+generateImport value = [i|(do
+                            (import "./examples/double.milho")
+                            (double #{value}))|]
+
+prop_Import value = monadicIO $ do
+    result <- run . execute $ generateImport value
+
+    assert $ result == (Number . fromIntegral $ value * 2)
+
 return []
 
 main = $quickCheckAll

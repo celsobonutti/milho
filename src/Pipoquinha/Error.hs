@@ -33,6 +33,7 @@ data T
   | MalformedCond
   | DividedByZero
   | FailedGuardClause Text
+  | FileError Text
   | UserRaised { errorCode :: Text, message :: Text }
 
     deriving (Eq, Ord)
@@ -86,6 +87,10 @@ instance Show T where
   show (FailedGuardClause clause) = "Failed guard clause: " <> toS clause
   show UserRaised { errorCode, message } =
     "Error code: " <> toS errorCode <> "\n" <> toS message
+  show (FileError path) =
+    "Error reading file '"
+      <> toS path
+      <> "'. Are you sure it exists and you have reading permission?"
 
 code :: T -> Text
 code (UndefinedVariable _)    = "undefined-variable"
@@ -109,3 +114,4 @@ code MalformedCond            = "malformed-cond"
 code DividedByZero            = "divided-by-zero"
 code (FailedGuardClause _)    = "failed-guard-clause"
 code UserRaised { errorCode } = errorCode
+code (FileError _)            = "file-error"

@@ -4,4 +4,4 @@
     (do
       (print "🌽> ")
       (println "🍿>"
-        (call-with-error-handler (eval (read)) error-code)))))
+        (call-with-error-handler (eval (read)) id)))))
