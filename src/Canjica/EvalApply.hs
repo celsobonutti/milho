@@ -526,10 +526,11 @@ apply [BuiltIn Raise, code, message] = do
     case (code, message) of
         (Quoted (Symbol code), String message) ->
             throw @"runtimeError" $ UserRaised code message
-        (Symbol code, invalidMessage) -> throw @"runtimeError" $ TypeMismatch
-            { expected = Type.String
-            , found    = SExp.toType invalidMessage
-            }
+        (Quoted (Symbol code), invalidMessage) ->
+            throw @"runtimeError" $ TypeMismatch
+                { expected = Type.String
+                , found    = SExp.toType invalidMessage
+                }
         (invalidCode, _) -> throw @"runtimeError" $ TypeMismatch
             { expected = Type.QuotedSymbol
             , found    = SExp.toType invalidCode
