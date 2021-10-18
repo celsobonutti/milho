@@ -41,7 +41,6 @@ data T
   | Str
   | Split
   | Cond
-  | Guard
   | Raise
   | CallWithErrorHandler
   | ErrorCode
@@ -86,7 +85,6 @@ instance Show T where
   show IsMacro              = "macro?"
   show IsNumber             = "number?"
   show IsPair               = "pair?"
-  show Guard                = "guard"
   show Raise                = "raise"
   show CallWithErrorHandler = "call-with-error-handler"
   show ErrorCode            = "error-code"

@@ -252,22 +252,6 @@ apply (BuiltIn Let : arguments) =
         , functionName  = Just "let"
         }
 
-apply [BuiltIn Guard, Pair (List clauses), body] = do
-    evaluatedClauses <- batchEval clauses
-    let zipped = zip evaluatedClauses clauses
-        failed = find ((== Bool False) . fst) zipped
-    case failed of
-        Just (_, clause) ->
-            throw @"runtimeError" $ FailedGuardClause (show clause)
-        Nothing -> eval body
-
-apply (BuiltIn Guard : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 2
-        , foundCount    = length arguments
-        , functionName  = Just "guard"
-        }
-
 {-  Function/macro operations
     fn, funcion application and macro expansion -}
 

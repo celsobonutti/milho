@@ -38,7 +38,6 @@
 (def number? .__number?)
 (def pair? .__pair?)
 (def eq? .__eq)
-(def guard .__guard)
 (def raise .__raise)
 (def call-with-error-handler .__call-with-error-handler)
 (def error-code .__error-code)
@@ -63,3 +62,9 @@
     ((value) (if value True False))
     ((value +rest) (if value True
                             (or +rest...))))
+
+(defmacro guard
+    (clauses body)
+    (if (and clauses...)
+        body
+        (raise 'failed-guard-clause "A clause failed to match")))
