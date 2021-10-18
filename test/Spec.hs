@@ -130,16 +130,53 @@ prop_Mlist fstInitial fstFinal snd = monadicIO $ do
     assert $ result == expected
     where expected = Number . fromIntegral $ fstFinal
 
+-- Also tests if call-with-error-handler works
 generateGuard :: Integer -> Integer -> Text
-generateGuard clauseNumber body = [i|(guard ((> 20 #{clauseNumber})) #{body})|]
+generateGuard clauseNumber body = [i|(call-with-error-handler
+                                        (guard ((> 20 #{clauseNumber})) #{body})
+                                        error-code)|]
 
 prop_Guard clauseNumber body = monadicIO $ do
     result <- run . execute $ generateGuard clauseNumber body
 
     assert $ result == expected
-    where expected
-            | 20 > clauseNumber = Number . fromIntegral $ body
-            | otherwise = Error . FailedGuardClause $ [i|('> 20 #{clauseNumber})|]
+  where
+    expected | 20 > clauseNumber = Number . fromIntegral $ body
+             | otherwise         = Symbol "failed-guard-clause"
+
+generateBoolOp :: Text -> [Bool] -> Text
+generateBoolOp op values = [i|(call-with-error-handler
+                                (#{op} #{unwords . fmap show $ values})
+                                error-code)|]
+
+prop_BoolOp (BoolOp op) values = monadicIO $ do
+    result <- run . execute $ generateBoolOp op values
+
+    assert $ result == expected
+  where
+    expected = case (op, values) of
+        ("not", [value]) -> Bool . not $ value
+        ("not", _      ) -> Symbol "wrong-number-of-arguments"
+        ("and", values ) -> Bool $ and values
+        ("or" , values ) -> Bool $ or values
+        _                -> Pair Nil
+
+generateUserRaise :: Integer -> Integer -> Text
+generateUserRaise first second = [i|(if (> #{first} #{second})
+                                 "yayy"
+                                 (raise 'invalid-value "Testing raise"))|]
+
+
+prop_UserRaise first second = monadicIO $ do
+    result <- run . execute $ generateUserRaise first second
+
+    assert $ result == expected
+  where
+    expected
+        | first > second = String "yayy"
+        | otherwise = Error $ UserRaised { errorCode = "invalid-value"
+                                         , message   = "Testing raise"
+                                         }
 
 return []
 

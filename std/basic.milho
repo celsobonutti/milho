@@ -1,5 +1,6 @@
 [- Built-in and basic function definitions  -]
 
+[- TO-DO: Generate builtins from the BuiltIn.hs file -]
 (.__def def .__def) ;; Define def using built-in since it's not declared yet.
 (def defn .__defn)
 (def defmacro .__defmacro)
@@ -38,6 +39,9 @@
 (def pair? .__pair?)
 (def eq? .__eq)
 (def guard .__guard)
+(def raise .__raise)
+(def call-with-error-handler .__call-with-error-handler)
+(def error-code .__error-code)
 
 (defn atom? (value) (not (pair? value)))
 

@@ -1,0 +1,7 @@
+(do
+  (println "Welcome to the 🌽 repl, now written in milho!")
+  (loop
+    (do
+      (print "🌽> ")
+      (println "🍿>"
+        (call-with-error-handler (eval (read)) error-code)))))

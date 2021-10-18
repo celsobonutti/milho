@@ -1,5 +1,1 @@
-(defn println (+rest)
-      (do (print +rest)
-          (print "\n")))
-
-(println "test")
+(print "Heyy")

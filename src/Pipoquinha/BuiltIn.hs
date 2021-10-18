@@ -42,6 +42,9 @@ data T
   | Split
   | Cond
   | Guard
+  | Raise
+  | CallWithErrorHandler
+  | ErrorCode
 
   deriving (Eq, Ord, Enum, Bounded)
 
@@ -84,3 +87,6 @@ instance Show T where
   show IsNumber             = "number?"
   show IsPair               = "pair?"
   show Guard                = "guard"
+  show Raise                = "raise"
+  show CallWithErrorHandler = "call-with-error-handler"
+  show ErrorCode            = "error-code"

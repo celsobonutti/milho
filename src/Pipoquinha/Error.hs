@@ -24,7 +24,6 @@ data T
   | NoCompatibleBodies (Maybe Text)
   | ParserError Text
   | CannotApply Type.T
-  | NotImplementedYet
   | MalformedDefinition
   | MalformedSet
   | MalformedLet
@@ -34,6 +33,7 @@ data T
   | MalformedCond
   | DividedByZero
   | FailedGuardClause Text
+  | UserRaised { errorCode :: Text, message :: Text }
 
     deriving (Eq, Ord)
 
@@ -68,7 +68,6 @@ instance Show T where
       <> maybe "anonymous function" toS name
   show (CannotApply dataType) =
     "Cannot apply " <> show dataType <> " as a function"
-  show NotImplementedYet = "Not implemented yet"
   show MalformedDefinition =
     "Malformed definition found. Variable and function definitions should be written as `def` followed by a symbol and a value, like:\n"
       <> "(def name 50) -- for variables; or \n"
@@ -85,3 +84,28 @@ instance Show T where
   show MalformedCond              = "Malformed cond found."
   show DividedByZero              = "Divided by zero"
   show (FailedGuardClause clause) = "Failed guard clause: " <> toS clause
+  show UserRaised { errorCode, message } =
+    "Error code: " <> toS errorCode <> "\n" <> toS message
+
+code :: T -> Text
+code (UndefinedVariable _)    = "undefined-variable"
+code TypeMismatch{}           = "type-mismatch"
+code NestedMultiArityFunction = "nested-multi-arity"
+code MultipleVariadicFunction = "multiple-variadic"
+code InvalidFunctionBody      = "invalid-body"
+code OverlappingBodies        = "overlapping-body"
+code WrongNumberOfArguments{} = "wrong-number-of-arguments"
+code NotEnoughArguments{}     = "not-enough-arguments"
+code (NoCompatibleBodies _)   = "no-compatible-bodies"
+code (ParserError        _)   = "parse-error"
+code (CannotApply        _)   = "cannot-apply"
+code MalformedDefinition      = "malformed-definition"
+code MalformedSet             = "malformed-set"
+code MalformedLet             = "malformed-let"
+code NotParameterList         = "not-parameter-list"
+code RepeatedParameter        = "repeated-parameter"
+code MisplacedVariadic        = "misplaced-variadic"
+code MalformedCond            = "malformed-cond"
+code DividedByZero            = "divided-by-zero"
+code (FailedGuardClause _)    = "failed-guard-clause"
+code UserRaised { errorCode } = errorCode

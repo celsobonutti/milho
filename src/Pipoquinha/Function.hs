@@ -39,10 +39,14 @@ instance Eq a => Ord (T a) where
   compare _ _ = EQ
 
 instance Show (T a) where
-  show (Simple   SF { parameters }) = show . length $ parameters
-  show (Variadic VF { parameters }) = (show . length $ parameters) <> "+"
-  show (MultiArity MAF { bodies, variadic }) =
-    "{" ++ showBodies bodies ++ maybe "" showVariadic variadic ++ "}"
+  show (Simple SF { parameters, name }) =
+    toS (fromMaybe "fn" name) <> "#" <> (show . length $ parameters)
+  show (Variadic VF { parameters, name }) =
+    toS (fromMaybe "fn" name) <> "#" <> (show . length $ parameters) <> "+"
+  show (MultiArity MAF { bodies, variadic, name }) =
+    toS (fromMaybe "fn" name)
+      <> "#"
+      <> ("{" ++ showBodies bodies ++ maybe "" showVariadic variadic ++ "}")
    where
     showBodies :: Map Int (Simple a) -> [Char]
     showBodies sexp =

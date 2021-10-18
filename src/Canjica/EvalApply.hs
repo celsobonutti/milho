@@ -15,15 +15,17 @@ import qualified Canjica.String                as String
 import           Capability.Error        hiding ( (:.:) )
 import           Capability.Reader       hiding ( (:.:) )
 import           Capability.State        hiding ( (:.:) )
+import           Control.Exception.Base         ( runtimeError )
 import           Data.IORef
 import qualified Data.Map                      as Map
 import           Pipoquinha.BuiltIn      hiding ( T )
 import qualified Pipoquinha.Environment        as Environment
-import           Pipoquinha.Environment         ( ReaderCapable
+import           Pipoquinha.Environment         ( CatchCapable
+                                                , ReaderCapable
                                                 , StateCapable
-                                                , ThrowCapable
                                                 )
 import           Pipoquinha.Error               ( T(..) )
+import qualified Pipoquinha.Error              as Error
 import           Pipoquinha.Parser             as Parser
 import           Pipoquinha.SExp         hiding ( T )
 import qualified Pipoquinha.SExp               as SExp
@@ -31,6 +33,7 @@ import qualified Pipoquinha.Type               as Type
 import           Protolude               hiding ( MonadReader
                                                 , ask
                                                 , asks
+                                                , catch
                                                 , get
                                                 , gets
                                                 , local
@@ -40,13 +43,13 @@ import           Protolude               hiding ( MonadReader
 import           Text.Megaparsec                ( errorBundlePretty
                                                 , parse
                                                 )
-throwIfError :: ThrowCapable m => SExp.Result a -> m a
+throwIfError :: CatchCapable m => SExp.Result a -> m a
 throwIfError = \case
     Left  error -> throw @"runtimeError" error
     Right value -> return value
 
 eval
-    :: (ReaderCapable SExp.T m, ThrowCapable m, StateCapable SExp.T m)
+    :: (ReaderCapable SExp.T m, CatchCapable m, StateCapable SExp.T m)
     => SExp.T
     -> m SExp.T
 eval atom = case atom of
@@ -64,13 +67,13 @@ eval atom = case atom of
     Pair _         -> return $ Pair Nil
 
 batchEval
-    :: (ReaderCapable SExp.T m, ThrowCapable m, StateCapable SExp.T m)
+    :: (ReaderCapable SExp.T m, CatchCapable m, StateCapable SExp.T m)
     => [SExp.T]
     -> m [SExp.T]
 batchEval = traverse eval
 
 apply
-    :: (ReaderCapable SExp.T m, ThrowCapable m, StateCapable SExp.T m)
+    :: (ReaderCapable SExp.T m, CatchCapable m, StateCapable SExp.T m)
     => [SExp.T]
     -> m SExp.T
 
@@ -319,25 +322,15 @@ apply (BuiltIn Eval : arguments) =
         }
 
 apply (BuiltIn PrintLn : rest) =
-    batchEval rest
-        >>= putStrLn
-        .   ("\"" <>)
-        .   (<> "\"")
-        .   unwords
-        .   map showUnlessString
-        >>  return (Pair Nil)
+    batchEval rest >>= putStrLn . unwords . map showUnlessString >> return
+        (Pair Nil)
   where
     showUnlessString (String s) = s
     showUnlessString other      = show other
 
 apply (BuiltIn Print : rest) =
-    batchEval rest
-        >>= putStr
-        .   ("\"" <>)
-        .   (<> "\"")
-        .   unwords
-        .   map showUnlessString
-        >>  return (Pair Nil)
+    batchEval rest >>= putStr . unwords . map showUnlessString >> return
+        (Pair Nil)
   where
     showUnlessString (String s) = s
     showUnlessString other      = show other
@@ -535,6 +528,58 @@ apply (BuiltIn IsPair : arguments) =
         { expectedCount = 1
         , foundCount    = length arguments
         , functionName  = Just "pair?"
+        }
+
+{- Error handling
+   raise, call-with-error-handler -}
+
+apply [BuiltIn Raise, codeArg, messageArg] = do
+    code    <- eval codeArg
+    message <- eval messageArg
+    case (code, message) of
+        (Symbol code, String message) ->
+            throw @"runtimeError" $ UserRaised code message
+        (Symbol code, invalidMessage) -> throw @"runtimeError" $ TypeMismatch
+            { expected = Type.String
+            , found    = SExp.toType invalidMessage
+            }
+        (invalidCode, _) -> throw @"runtimeError" $ TypeMismatch
+            { expected = Type.Symbol
+            , found    = SExp.toType invalidCode
+            }
+
+apply (BuiltIn Raise : arguments) = do
+    print arguments
+    throw @"runtimeError" $ WrongNumberOfArguments
+        { expectedCount = 2
+        , foundCount    = length arguments
+        , functionName  = Just "raise"
+        }
+
+apply [BuiltIn CallWithErrorHandler, function, handler] =
+    catch @"runtimeError" (eval function) (return . Error) >>= \case
+        error@(Error _) -> apply [handler, error]
+        success         -> return success
+
+apply (BuiltIn CallWithErrorHandler : arguments) =
+    throw @"runtimeError" $ WrongNumberOfArguments
+        { expectedCount = 2
+        , foundCount    = length arguments
+        , functionName  = Just "call-with-error-handler"
+        }
+
+apply [BuiltIn ErrorCode, argument] = eval argument >>= \case
+    Error error -> return . Symbol $ Error.code error
+    invalid     -> throw @"runtimeError" $ TypeMismatch
+        { expected = Type.Error
+        , found    = SExp.toType invalid
+        }
+
+apply (BuiltIn ErrorCode : arguments) =
+    throw @"runtimeError" $ WrongNumberOfArguments
+        { expectedCount = 1
+        , foundCount    = length arguments
+        , functionName  = Just "error-code"
         }
 
 {-  Remaining operations
