@@ -20,15 +20,12 @@
 (def print .__print)
 (def loop .__loop)
 (def do .__do)
-(def not .__not)
 (def cons .__cons)
 (def car .__car)
 (def cdr .__cdr)
 (def quote .__quote)
 (def set! .__set)
 (def numerator .__numerator)
-(def or .__or)
-(def and .__and)
 (def concat .__concat)
 (def str .__str)
 (def split .__split)
@@ -42,6 +39,23 @@
 (def eq? .__eq)
 (def guard .__guard)
 
-(defn atom? (x) (not (pair? x)))
+(defn atom? (value) (not (pair? value)))
 
-(defn id (x) x)
+(defn id (value) value)
+
+(defn not (value)
+      (if value
+          False
+          True))
+
+(defmacro and
+    (() True)
+    ((value) (if value True False))
+    ((value +rest) (if value (and +rest...)
+                              False)))
+
+(defmacro or
+    (() False)
+    ((value) (if value True False))
+    ((value +rest) (if value True
+                            (or +rest...))))

@@ -153,25 +153,6 @@ apply (BuiltIn Numerator : arguments) =
         , functionName  = Just "numerator"
         }
 
-{- Boolean operations -}
-
-apply [BuiltIn Not, value] = eval value >>= \case
-    Bool False -> return . Bool $ True
-    _          -> return . Bool $ False
-
-apply (BuiltIn Not : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 1
-        , foundCount    = length arguments
-        , functionName  = Just "not"
-        }
-
-apply (BuiltIn And : values) =
-    batchEval values <&> foldM Boolean.and (Bool True) >>= throwIfError
-
-apply (BuiltIn Or : values) =
-    batchEval values <&> foldM Boolean.or (Bool False) >>= throwIfError
-
 {- Control flow operations -}
 
 apply [BuiltIn If, predicate, consequent, alternative] =
@@ -283,6 +264,7 @@ apply (BuiltIn Guard : arguments) =
         , foundCount    = length arguments
         , functionName  = Just "guard"
         }
+
 {-  Function/macro operations
     fn, funcion application and macro expansion -}
 
