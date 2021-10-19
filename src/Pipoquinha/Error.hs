@@ -1,12 +1,25 @@
 module Pipoquinha.Error where
 
+import           Data.List.NonEmpty
 import           GHC.Show                       ( Show(..) )
 import qualified Pipoquinha.Type               as Type
 import           Protolude               hiding ( show )
 
+data ExpectedType
+  = Simple Type.T
+  | Multiple (NonEmpty Type.T)
+  deriving (Eq, Ord)
+
+instance Show ExpectedType where
+  show (Simple   t            ) = show t
+  show (Multiple (t :| []    )) = show t
+  show (Multiple (t :| [last])) = show t <> ", or " <> show last
+  show (Multiple (t :| rest)) =
+    show t <> ", " <> (show . Multiple . fromList $ rest)
+
 data T
   = UndefinedVariable Text
-  | TypeMismatch { expected :: Type.T
+  | TypeMismatch { expected :: ExpectedType
                  , found    :: Type.T
                  }
   | NestedMultiArityFunction

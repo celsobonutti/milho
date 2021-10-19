@@ -190,11 +190,11 @@ prop_Import value = monadicIO $ do
 
 generateScopedImport :: Integer -> Text
 generateScopedImport value = [i|(do
-                            (import "./examples/double.milho" 'double)
-                            (double::double #{value}))|]
+                                  (import (prefix-with math: examples/double))
+                                  (math:double #{value}))|]
 
 prop_ScopedImport value = monadicIO $ do
-    result <- run . execute $ generateImport value
+    result <- run . execute $ generateScopedImport value
 
     assert $ result == (Number . fromIntegral $ value * 2)
 return []

@@ -27,7 +27,9 @@ import           Pipoquinha.Environment         ( CatchCapable
                                                 , ReaderCapable
                                                 , StateCapable
                                                 )
-import           Pipoquinha.Error               ( T(..) )
+import           Pipoquinha.Error               ( ExpectedType(..)
+                                                , T(..)
+                                                )
 import qualified Pipoquinha.Error              as Error
 import           Pipoquinha.Parser             as Parser
 import           Pipoquinha.SExp         hiding ( T )
@@ -124,9 +126,9 @@ apply (BuiltIn Mul : arguments) =
 
 apply [BuiltIn Negate, atom] = eval atom >>= \case
     Number x -> return . Number . negate $ x
-    value    -> throw @"runtimeError" TypeMismatch { expected = Type.Number
-                                                   , found = SExp.toType value
-                                                   }
+    value -> throw @"runtimeError" TypeMismatch { expected = Simple Type.Number
+                                                , found    = SExp.toType value
+                                                }
 apply (BuiltIn Negate : arguments) =
     throw @"runtimeError" $ WrongNumberOfArguments
         { expectedCount = 1
@@ -137,9 +139,9 @@ apply (BuiltIn Negate : arguments) =
 apply [BuiltIn Invert, atom] = eval atom >>= \case
     Number 0 -> throw @"runtimeError" DividedByZero
     Number x -> return . Number $ denominator x % numerator x
-    value    -> throw @"runtimeError" TypeMismatch { expected = Type.Number
-                                                   , found = SExp.toType value
-                                                   }
+    value -> throw @"runtimeError" TypeMismatch { expected = Simple Type.Number
+                                                , found    = SExp.toType value
+                                                }
 
 apply (BuiltIn Invert : arguments) =
     throw @"runtimeError" $ WrongNumberOfArguments
@@ -150,9 +152,9 @@ apply (BuiltIn Invert : arguments) =
 
 apply [BuiltIn Numerator, atom] = eval atom >>= \case
     Number x -> return . Number $ numerator x % 1
-    value    -> throw @"runtimeError" TypeMismatch { expected = Type.Number
-                                                   , found = SExp.toType value
-                                                   }
+    value -> throw @"runtimeError" TypeMismatch { expected = Simple Type.Number
+                                                , found    = SExp.toType value
+                                                }
 
 apply (BuiltIn Numerator : arguments) =
     throw @"runtimeError" $ WrongNumberOfArguments
@@ -364,7 +366,7 @@ apply [BuiltIn Car, atom] = eval atom >>= \case
     Pair Nil       -> return $ Pair Nil
     Pair (x ::: _) -> return x
     Pair (x :.: _) -> return x
-    value -> throw @"runtimeError" TypeMismatch { expected = Type.Pair
+    value -> throw @"runtimeError" TypeMismatch { expected = Simple Type.Pair
                                                 , found    = SExp.toType value
                                                 }
 
@@ -379,7 +381,7 @@ apply [BuiltIn Cdr, atom] = eval atom >>= \case
     Pair Nil        -> return $ Pair Nil
     Pair (_ ::: xs) -> return $ Pair xs
     Pair (_ :.: x ) -> return x
-    value -> throw @"runtimeError" TypeMismatch { expected = Type.Pair
+    value -> throw @"runtimeError" TypeMismatch { expected = Simple Type.Pair
                                                 , found    = SExp.toType value
                                                 }
 
@@ -528,11 +530,11 @@ apply [BuiltIn Raise, code, message] = do
             throw @"runtimeError" $ UserRaised code message
         (Quoted (Symbol code), invalidMessage) ->
             throw @"runtimeError" $ TypeMismatch
-                { expected = Type.String
+                { expected = Simple Type.String
                 , found    = SExp.toType invalidMessage
                 }
         (invalidCode, _) -> throw @"runtimeError" $ TypeMismatch
-            { expected = Type.QuotedSymbol
+            { expected = Simple Type.QuotedSymbol
             , found    = SExp.toType invalidCode
             }
 
@@ -558,7 +560,7 @@ apply (BuiltIn CallWithErrorHandler : arguments) =
 apply [BuiltIn ErrorCode, argument] = eval argument >>= \case
     Error error -> return . Symbol $ Error.code error
     invalid     -> throw @"runtimeError" $ TypeMismatch
-        { expected = Type.Error
+        { expected = Simple Type.Error
         , found    = SExp.toType invalid
         }
 
@@ -571,35 +573,39 @@ apply (BuiltIn ErrorCode : arguments) =
 
 {- Import operations -}
 
-apply [BuiltIn Import, pathArg] = case pathArg of
-    String path -> do
+apply [BuiltIn Import, Pair (List [Symbol "prefix-with", prefixArg, pathArg])]
+    = case (Import.getFileLocation pathArg, prefixArg) of
+        (Just path, Symbol prefix) -> do
+            fileContents <-
+                (liftIO . Import.safelyReadFile $ path) >>= throwIfError
+            functions <- throwIfError
+                (first ParserError $ parseFile fileContents)
+            mapM_ (eval . Import.prefixDef prefix) functions
+            return (Pair Nil)
+        (Just _, invalidScope) -> throw @"runtimeError" $ TypeMismatch
+            { expected = Simple Type.Symbol
+            , found    = SExp.toType invalidScope
+            }
+        (Nothing, _) -> throw @"runtimeError" $ TypeMismatch
+            { expected = Multiple (Type.String :| [Type.Symbol])
+            , found    = SExp.toType pathArg
+            }
+
+
+apply [BuiltIn Import, pathArg] = case Import.getFileLocation pathArg of
+    Just path -> do
         fileContents <- (liftIO . Import.safelyReadFile $ path) >>= throwIfError
         functions <- throwIfError (first ParserError $ parseFile fileContents)
         mapM_ eval functions
         return (Pair Nil)
-    invalidPath -> throw @"runtimeError" $ TypeMismatch
-        { expected = Type.String
-        , found    = SExp.toType invalidPath
-        }
-
-apply [BuiltIn Import, pathArg, scopeArg] = case (pathArg, scopeArg) of
-    (String path, Quoted (Symbol scope)) -> do
-        fileContents <- (liftIO . Import.safelyReadFile $ path) >>= throwIfError
-        functions <- throwIfError (first ParserError $ parseFile fileContents)
-        mapM_ (eval . Import.renameDef scope) functions
-        return (Pair Nil)
-    (String _, invalidScope) -> throw @"runtimeError" $ TypeMismatch
-        { expected = Type.QuotedSymbol
-        , found    = SExp.toType invalidScope
-        }
-    (invalidPath, _) -> throw @"runtimeError" $ TypeMismatch
-        { expected = Type.String
-        , found    = SExp.toType invalidPath
+    Nothing -> throw @"runtimeError" $ TypeMismatch
+        { expected = Multiple (Type.String :| [Type.Symbol])
+        , found    = SExp.toType pathArg
         }
 
 apply (BuiltIn Import : arguments) =
     throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 2
+        { expectedCount = 1
         , foundCount    = length arguments
         , functionName  = Just "import"
         }

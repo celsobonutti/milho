@@ -1,6 +1,7 @@
 module Canjica.Import
     ( safelyReadFile
-    , renameDef
+    , prefixDef
+    , getFileLocation
     ) where
 
 import           Control.Exception.Base         ( IOException )
@@ -19,10 +20,10 @@ safelyReadFile path =
 catchAsFileError :: Text -> IOException -> IO (SExp.Result Text)
 catchAsFileError path _ = return . Left $ FileError path
 
-renameDef :: Text -> SExp.T -> SExp.T
-renameDef scope sexp = case sexp of
+prefixDef :: Text -> SExp.T -> SExp.T
+prefixDef prefix sexp = case sexp of
     Pair (List (op : Symbol name : rest)) | op `elem` definitionOps ->
-        Pair . List $ op : Symbol (scope <> "::" <> name) : rest
+        Pair . List $ op : Symbol (prefix <> name) : rest
     other -> other
 
 definitionOps :: [SExp.T]
@@ -34,3 +35,8 @@ definitionOps =
     , Symbol "defn"
     , Symbol "defmacro"
     ]
+
+getFileLocation :: SExp.T -> Maybe Text
+getFileLocation (String path      ) = Just path
+getFileLocation (Symbol moduleName) = Just $ "./" <> moduleName <> ".milho"
+getFileLocation _                   = Nothing
