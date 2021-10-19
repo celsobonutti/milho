@@ -46,26 +46,25 @@ execute input = do
                 (catch @"runtimeError" (eval expression) (return . Error))
                 environment
 
-generateArithmetic :: Text -> [Integer] -> Text
+generateArithmetic :: Arithmetic -> [Integer] -> Text
 generateArithmetic op numbers = [i|(#{op} #{unwords . fmap show $ numbers})|]
 
-prop_Arithmetic (Arithmetic op) numbers = monadicIO $ do
+prop_Arithmetic op numbers = monadicIO $ do
     result <- run . execute $ generateArithmetic op numbers
 
     assert $ result == expected
   where
     expected = case (op, numbers) of
-        ("+", _) -> Number $ sum (fromIntegral <$> numbers)
-        ("*", _) -> Number $ product (fromIntegral <$> numbers)
-        ("-", []) -> Error . NoCompatibleBodies . Just $ "-"
-        ("-", [number]) -> Number . negate . fromIntegral $ number
-        ("-", _) -> Number $ foldl1 (-) . map fromIntegral $ numbers
-        ("/", []) -> Error . NoCompatibleBodies . Just $ "/"
-        ("/", [0]) -> Error DividedByZero
-        ("/", first : rest) | 0 `elem` rest -> Error DividedByZero
-        ("/", [number]) -> Number $ 1 % number
-        ("/", _) -> Number $ foldl1 (/) . map fromIntegral $ numbers
-        _ -> Pair Nil
+        (Add, _) -> Number $ sum (fromIntegral <$> numbers)
+        (Mul, _) -> Number $ product (fromIntegral <$> numbers)
+        (Sub, []) -> Error . NoCompatibleBodies . Just $ "-"
+        (Sub, [number]) -> Number . negate . fromIntegral $ number
+        (Sub, _) -> Number $ foldl1 (-) . map fromIntegral $ numbers
+        (Div, []) -> Error . NoCompatibleBodies . Just $ "/"
+        (Div, [0]) -> Error DividedByZero
+        (Div, first : rest) | 0 `elem` rest -> Error DividedByZero
+        (Div, [number]) -> Number $ 1 % number
+        (Div, _) -> Number $ foldl1 (/) . map fromIntegral $ numbers
 
 generateDefinition :: Integer -> Text
 generateDefinition value = [i|(do
@@ -146,22 +145,21 @@ prop_Guard clauseNumber body = monadicIO $ do
     expected | 20 > clauseNumber = Number . fromIntegral $ body
              | otherwise         = Symbol "failed-guard-clause"
 
-generateBoolOp :: Text -> [Bool] -> Text
+generateBoolOp :: BoolOp -> [Bool] -> Text
 generateBoolOp op values = [i|(call-with-error-handler
                                 (#{op} #{unwords . fmap show $ values})
                                 error-code)|]
 
-prop_BoolOp (BoolOp op) values = monadicIO $ do
+prop_BoolOp op values = monadicIO $ do
     result <- run . execute $ generateBoolOp op values
 
     assert $ result == expected
   where
     expected = case (op, values) of
-        ("not", [value]) -> Bool . not $ value
-        ("not", _      ) -> Symbol "wrong-number-of-arguments"
-        ("and", values ) -> Bool $ and values
-        ("or" , values ) -> Bool $ or values
-        _                -> Pair Nil
+        (Not, [value]) -> Bool . not $ value
+        (Not, _      ) -> Symbol "wrong-number-of-arguments"
+        (And, values ) -> Bool $ and values
+        (Or , values ) -> Bool $ or values
 
 generateUserRaise :: Integer -> Integer -> Text
 generateUserRaise first second = [i|(if (> #{first} #{second})
@@ -199,7 +197,7 @@ prop_ScopedImport value = monadicIO $ do
     result <- run . execute $ generateScopedNestedImport value
 
     assert $ result == (Number . fromIntegral $ value * 2)
-    
+
 return []
 
 main = $quickCheckAll
