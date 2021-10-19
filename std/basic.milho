@@ -69,3 +69,5 @@
     (if (and clauses...)
         body
         (raise 'failed-guard-clause "A clause failed to match")))
+
+(defn get-false )

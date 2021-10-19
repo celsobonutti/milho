@@ -1,1 +1,1 @@
-(print "Heyy")
+(import (prefix-with math: examples/double))

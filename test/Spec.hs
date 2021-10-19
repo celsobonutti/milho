@@ -188,13 +188,13 @@ prop_Import value = monadicIO $ do
 
     assert $ result == (Number . fromIntegral $ value * 2)
 
-generateScopedImport :: Integer -> Text
-generateScopedImport value = [i|(do
-                                  (import (prefix-with math: examples/double))
-                                  (math:double #{value}))|]
+generateScopedNestedImport :: Integer -> Text
+generateScopedNestedImport value = [i|(do
+                                        (import examples/test)
+                                        (math:double #{value}))|]
 
 prop_ScopedImport value = monadicIO $ do
-    result <- run . execute $ generateScopedImport value
+    result <- run . execute $ generateScopedNestedImport value
 
     assert $ result == (Number . fromIntegral $ value * 2)
 return []
