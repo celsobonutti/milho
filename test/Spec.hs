@@ -24,6 +24,7 @@ import qualified Pipoquinha.SExp               as SExp
 import           Pipoquinha.SExp
 import           Protolude               hiding ( catch )
 import           Protolude.Partial              ( foldl1 )
+import           System.Directory               ( getCurrentDirectory )
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
 import           Text.Megaparsec         hiding ( State )
@@ -36,7 +37,8 @@ execute input = do
     case parseFile . decodeUtf8 $ basicOps of
         Left  e        -> return . Error . ParserError $ e
         Right builtIns -> do
-            environment <- Environment.empty
+            currentDirectory <- getCurrentDirectory
+            environment      <- Environment.empty currentDirectory
             mapM_ (\atom -> Environment.runM (eval atom) environment) builtIns
             let expression = parseExpression input
 
@@ -197,6 +199,7 @@ prop_ScopedImport value = monadicIO $ do
     result <- run . execute $ generateScopedNestedImport value
 
     assert $ result == (Number . fromIntegral $ value * 2)
+    
 return []
 
 main = $quickCheckAll

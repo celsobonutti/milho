@@ -19,6 +19,7 @@ import           Protolude               hiding ( All
                                                 , modify'
                                                 , put
                                                 )
+import           System.IO                      ( FilePath )
 
 data Table sexp = Table
   { variables :: Map Text (IORef sexp)
@@ -32,8 +33,9 @@ insert key value table =
 
 type TableRef sexp = IORef (Table sexp)
 
-newtype T sexp = T
-  { table :: TableRef sexp
+data T sexp = T
+  { table         :: TableRef sexp
+  , executionPath :: FilePath
   }
   deriving Generic
 
@@ -56,7 +58,16 @@ newtype M sexp a = M {runM :: T sexp -> IO a}
     , HasState  "tableState" (Table sexp)
     ) via ReaderIORef (Rename "table" (Field "table" "environment" (MonadReader (ReaderT (T sexp) IO))))
 
-type ReaderCapable sexp m = (HasReader "table" (TableRef sexp) m, MonadIO m)
+  deriving
+    ( HasSource "executionPath" FilePath
+    , HasReader "executionPath" FilePath
+    ) via Field "executionPath" "environment" (MonadReader (ReaderT (T sexp) IO))
+
+type ReaderCapable sexp m
+  = ( HasReader "table" (TableRef sexp) m
+    , HasReader "executionPath" FilePath m
+    , MonadIO m
+    )
 
 type StateCapable sexp m = (HasState "tableState" (Table sexp) m, MonadIO m)
 
@@ -64,11 +75,11 @@ type ThrowCapable m = HasThrow "runtimeError" Error.T m
 
 type CatchCapable m = HasCatch "runtimeError" Error.T m
 
-empty :: IO (T sexp)
-empty = do
+empty :: FilePath -> IO (T sexp)
+empty executionPath = do
   let table = Table { variables = Map.empty, parent = Nothing }
   tableRef <- newIORef table
-  return T { table = tableRef }
+  return T { table = tableRef, executionPath }
 
 insertValue :: StateCapable sexp m => Text -> sexp -> m ()
 insertValue key value = do

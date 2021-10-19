@@ -21,6 +21,7 @@ import qualified Pipoquinha.SExp               as SExp
 import           Pipoquinha.SExp                ( T(Error) )
 import           Prelude                        ( IO )
 import           Protolude               hiding ( catch )
+import           System.Directory               ( getCurrentDirectory )
 import           System.IO                      ( BufferMode(NoBuffering)
                                                 , hSetBuffering
                                                 , stdout
@@ -36,7 +37,8 @@ main = do
   case parseFile . decodeUtf8 $ basicOps of
     Left  e        -> putStrLn e
     Right builtIns -> do
-      environment <- Environment.empty
+      currentDirectory <- getCurrentDirectory
+      environment      <- Environment.empty currentDirectory
       mapM_ (runExpression environment) builtIns
       args <- getArgs
       case args of

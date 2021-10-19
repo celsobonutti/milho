@@ -46,6 +46,8 @@ import           Protolude               hiding ( MonadReader
                                                 , put
                                                 , yield
                                                 )
+import           System.Directory               ( makeAbsolute )
+import           System.FilePath                ( takeDirectory )
 import           Text.Megaparsec                ( errorBundlePretty
                                                 , parse
                                                 )
@@ -573,34 +575,25 @@ apply (BuiltIn ErrorCode : arguments) =
 
 {- Import operations -}
 
-apply [BuiltIn Import, Pair (List [Symbol "prefix-with", prefixArg, pathArg])]
-    = case (Import.getFileLocation pathArg, prefixArg) of
-        (Just path, Symbol prefix) -> do
-            fileContents <-
-                (liftIO . Import.safelyReadFile $ path) >>= throwIfError
-            functions <- throwIfError
-                (first ParserError $ parseFile fileContents)
-            mapM_ (eval . Import.prefixDef prefix) functions
-            return (Pair Nil)
-        (Just _, invalidScope) -> throw @"runtimeError" $ TypeMismatch
-            { expected = Simple Type.Symbol
-            , found    = SExp.toType invalidScope
-            }
-        (Nothing, _) -> throw @"runtimeError" $ TypeMismatch
-            { expected = Multiple (Type.String :| [Type.Symbol])
-            , found    = SExp.toType pathArg
-            }
+apply [BuiltIn Import, argument] = case Import.getInformation argument of
+    (Just path, prefix) -> do
+        currentPath <- ask @"executionPath"
+        newPath     <- liftIO . makeAbsolute $ (currentPath <> "/" <> toS path)
+        local @"executionPath"
+            (const (takeDirectory newPath))
+            (do
+                fileContents <-
+                    (liftIO . Import.safelyReadFile $ newPath) >>= throwIfError
+                functions <- throwIfError
+                    (first ParserError $ parseFile fileContents)
+                mapM_ (eval . Import.prefixDef prefix) functions
+                return (Pair Nil)
+            )
 
-
-apply [BuiltIn Import, pathArg] = case Import.getFileLocation pathArg of
-    Just path -> do
-        fileContents <- (liftIO . Import.safelyReadFile $ path) >>= throwIfError
-        functions <- throwIfError (first ParserError $ parseFile fileContents)
-        mapM_ eval functions
-        return (Pair Nil)
-    Nothing -> throw @"runtimeError" $ TypeMismatch
-        { expected = Multiple (Type.String :| [Type.Symbol])
-        , found    = SExp.toType pathArg
+    (Nothing, _) -> throw @"runtimeError" $ TypeMismatch
+        { expected = Multiple
+                         (Type.String :| [Type.Symbol, Type.ImportPrefixWith])
+        , found    = SExp.toType argument
         }
 
 apply (BuiltIn Import : arguments) =

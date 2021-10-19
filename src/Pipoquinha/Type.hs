@@ -11,4 +11,5 @@ data T
   | String
   | Number
   | QuotedSymbol
+  | ImportPrefixWith
   | Pair deriving (Eq, Ord, Show)

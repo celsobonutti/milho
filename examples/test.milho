@@ -1,1 +1,1 @@
-(import (prefix-with math: examples/double))
+(import (prefix-with math: double))
