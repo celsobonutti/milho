@@ -19,12 +19,16 @@
     ((value +rest) (if value True
                             (or +rest...))))
 
-
 (defmacro guard
     (clauses body)
     (if (and clauses...)
         body
         (raise 'failed-guard-clause "A clause failed to match")))
+
+(defmacro my-cond
+    (() Nil)
+    ((value) (if value... Nil))
+    ((value +rest) (if value... (cond +rest...))))
 
 (defn list (+rest)
       +rest)

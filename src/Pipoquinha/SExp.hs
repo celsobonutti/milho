@@ -14,7 +14,8 @@ data Pair
   | P T T
   deriving (Eq, Ord)
 
-infixr 9 :::
+infixr 9 :.:
+infixr 8 :::
 
 pattern x ::: xs <- P x (Pair xs) where
   x ::: xs = P x (Pair xs)
@@ -41,6 +42,10 @@ instance Show Pair where
   show (x ::: xs ) = show x ++ " " ++ show xs
   show (x :.: y  ) = show x ++ " . " ++ show y
 
+mapPair f Nil       = Nil
+mapPair f (x ::: y) = f x ::: mapPair f y
+mapPair f (x :.: y) = f x :.: f y
+
 type Environment = Environment.TableRef T
 
 type Function = Function.T T
@@ -64,7 +69,7 @@ instance Show T where
   show (Symbol   t) = toS $ "'" <> t
   show (Error    e) = toS $ "Error: " <> show e
   show (Function f) = show f
-  show (Macro    m) = "macro#" <> show m
+  show (Macro    m) = "m" <> show m
   show (String   s) = "\"" <> toS s <> "\""
   show (BuiltIn  b) = "BuilIn." <> show b
   show (Pair     p) = "(" <> show p <> ")"

@@ -6,6 +6,7 @@ import qualified Data.Map                      as Map
 import           Data.Text                      ( dropEnd
                                                 , isSuffixOf
                                                 )
+import           Pipoquinha.Parser              ( parseExpression )
 import           Pipoquinha.SExp         hiding ( T )
 import qualified Pipoquinha.SExp               as SExp
 import           Protolude
@@ -13,13 +14,17 @@ import           Protolude
 expand :: Arguments -> SExp.T -> SExp.T
 expand table symbol@(Symbol variable) =
     fromMaybe symbol (Map.lookup variable table)
-expand table element@(Pair (head ::: Symbol variable ::: Nil)) = if isSpread
-    then case Map.lookup varName table of
-        Just (Pair arguments) -> Pair $ expand table head ::: arguments
-        _                     -> element
-    else Pair (expand table head ::: expand table (Symbol variable) ::: Nil)
-  where
-    isSpread = "..." `isSuffixOf` variable
-    varName  = dropEnd 3 variable
+expand table (Pair (List elements)) =
+    Pair (List (elements >>= spreadSymbols table))
 expand table (Pair (x :.: y)) = Pair (expand table x :.: expand table y)
 expand _     body             = body
+
+spreadSymbols :: Arguments -> SExp.T -> [SExp.T]
+spreadSymbols table sexp = case sexp of
+    Symbol name | isSpread name -> case Map.lookup (varName name) table of
+        Just (Pair (List arguments)) -> arguments
+        _                            -> [Symbol name]
+    element -> [expand table element]
+  where
+    isSpread name = "..." `isSuffixOf` name
+    varName name = dropEnd 3 name
