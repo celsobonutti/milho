@@ -411,92 +411,13 @@ apply (BuiltIn Split : arguments) =
 {-  Type operations
     The ones that check if a thing has a type -}
 
-apply [BuiltIn IsFunction, argument] = do
-    result <- eval argument
-    return . Bool $ SExp.toType result == Type.Function
+apply [BuiltIn Type, argument] = eval argument <&> Symbol . show . SExp.toType
 
-apply (BuiltIn IsFunction : arguments) =
+apply (BuiltIn Type : arguments) =
     throw @"runtimeError" $ WrongNumberOfArguments
         { expectedCount = 1
         , foundCount    = length arguments
-        , functionName  = Just "function?"
-        }
-
-apply [BuiltIn IsBool, argument] = do
-    result <- eval argument
-    return . Bool $ SExp.toType result == Type.Bool
-
-apply (BuiltIn IsBool : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 1
-        , foundCount    = length arguments
-        , functionName  = Just "bool?"
-        }
-
-apply [BuiltIn IsError, argument] = do
-    result <- eval argument
-    return . Bool $ SExp.toType result == Type.Error
-
-apply (BuiltIn IsError : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 1
-        , foundCount    = length arguments
-        , functionName  = Just "error?"
-        }
-
-apply [BuiltIn IsSymbol, argument] = do
-    result <- eval argument
-    return . Bool $ SExp.toType result == Type.Symbol
-
-apply (BuiltIn IsSymbol : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 1
-        , foundCount    = length arguments
-        , functionName  = Just "symbol?"
-        }
-
-apply [BuiltIn IsMacro, argument] = do
-    result <- eval argument
-    return . Bool $ SExp.toType result == Type.Macro
-
-apply (BuiltIn IsMacro : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 1
-        , foundCount    = length arguments
-        , functionName  = Just "macro?"
-        }
-
-apply [BuiltIn IsString, argument] = do
-    result <- eval argument
-    return . Bool $ SExp.toType result == Type.String
-
-apply (BuiltIn IsString : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 1
-        , foundCount    = length arguments
-        , functionName  = Just "string"
-        }
-
-apply [BuiltIn IsNumber, argument] = do
-    result <- eval argument
-    return . Bool $ SExp.toType result == Type.Number
-
-apply (BuiltIn IsNumber : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 1
-        , foundCount    = length arguments
-        , functionName  = Just "number?"
-        }
-
-apply [BuiltIn IsPair, argument] = do
-    result <- eval argument
-    return . Bool $ SExp.toType result == Type.Pair
-
-apply (BuiltIn IsPair : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 1
-        , foundCount    = length arguments
-        , functionName  = Just "pair?"
+        , functionName  = Just "type"
         }
 
 {- Error handling

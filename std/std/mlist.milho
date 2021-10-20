@@ -1,5 +1,5 @@
 (import list)
-(import control)
+(import predicates)
 
 (defn mcons (car cdr)
   (let
@@ -31,3 +31,8 @@
 
 (defn mcdr (mlist)
       (mlist 'mcdr))
+
+(defn mlist? (value)
+      (call-with-error-handler
+        (do (mcar value) True)
+        (fn (_) False)))

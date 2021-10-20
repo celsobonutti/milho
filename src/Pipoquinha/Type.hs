@@ -1,6 +1,7 @@
 module Pipoquinha.Type where
 
-import           Protolude
+import           GHC.Show                       ( Show(..) )
+import           Protolude               hiding ( show )
 
 data T
   = Function
@@ -10,6 +11,18 @@ data T
   | Macro
   | String
   | Number
+  | Pair
   | QuotedSymbol
-  | ImportPrefixWith
-  | Pair deriving (Eq, Ord, Show)
+  | ImportPrefixWith deriving (Eq, Ord)
+
+instance Show T where
+  show Function         = "function"
+  show Error            = "error"
+  show Symbol           = "symbol"
+  show Bool             = "bool"
+  show Macro            = "macro"
+  show String           = "string"
+  show Number           = "number"
+  show Pair             = "pair"
+  show QuotedSymbol     = "quoted-symbol"
+  show ImportPrefixWith = "import-prefix"

@@ -27,6 +27,7 @@ import           Protolude               hiding ( catch )
 import           Protolude.Partial              ( foldl1 )
 import           System.Directory               ( getCurrentDirectory )
 import           System.FilePath.Posix          ( addTrailingPathSeparator )
+import           Test.Hspec
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
 import           Text.Megaparsec         hiding ( State )
@@ -203,11 +204,13 @@ cyclicImport =
                   \ (import examples/cyclic) \
                   \ error-code)"
 
-prop_cyclicImport = monadicIO $ do
-  result <- run . execute $ cyclicImport
-
-  assert $ result == Symbol "cyclic-import"
+testCyclicImport = hspec $ do
+  describe "Cyclic import" $ do
+    it "breaks when trying to do a cyclic import" $ do
+      execute cyclicImport `shouldReturn` Symbol "cyclic-import"
 
 return []
 
-main = $quickCheckAll
+main = do
+  $quickCheckAll
+  testCyclicImport

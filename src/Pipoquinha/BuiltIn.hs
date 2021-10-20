@@ -29,14 +29,7 @@ data T
   | Lt
   | Numerator
   | Set
-  | IsFunction
-  | IsBool
-  | IsError
-  | IsSymbol
-  | IsMacro
-  | IsString
-  | IsNumber
-  | IsPair
+  | Type
   | Concat
   | Str
   | Split
@@ -73,17 +66,10 @@ instance Show T where
   show Lt                   = "<"
   show Numerator            = "numerator"
   show Set                  = "set!"
+  show Type                 = "type"
   show Concat               = "concat"
-  show IsString             = "string?"
   show Str                  = "str"
   show Split                = "split"
-  show IsFunction           = "function?"
-  show IsBool               = "bool?"
-  show IsError              = "error?"
-  show IsSymbol             = "symbol?"
-  show IsMacro              = "macro?"
-  show IsNumber             = "number?"
-  show IsPair               = "pair?"
   show Raise                = "raise"
   show CallWithErrorHandler = "call-with-error-handler"
   show ErrorCode            = "error-code"

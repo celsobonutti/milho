@@ -1,4 +1,4 @@
-(defn null? (value) (eq? '() value))
+(import predicates)
 
 (defn make-list (size value)
       (if (< size 1)

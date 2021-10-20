@@ -1,0 +1,51 @@
+(defn not (value)
+      (if value
+          False
+          True))
+
+(defmacro and
+    (() True)
+    ((value) (if value True False))
+    ((value +rest) (if value (and +rest...)
+                              False)))
+
+(defmacro or
+    (() False)
+    ((value) (if value True False))
+    ((value +rest) (if value True
+                            (or +rest...))))
+
+(defmacro guard
+    (clauses body)
+    (if (and clauses...)
+        body
+        (raise 'failed-guard-clause "A clause failed to match")))
+
+(defmacro cond
+    (() (raise 'unmatched-cond "cond didn't match any clause. Maybe add a default value?"))
+    ((value +rest) (if value... (cond +rest...))))
+
+(defn function? (value) (eq? (type value) 'function))
+(defn bool?     (value) (eq? (type value) 'bool))
+(defn error?    (value) (eq? (type value) 'error))
+(defn symbol?   (value) (eq? (type value) 'symbol))
+(defn macro?    (value) (eq? (type value) 'macro))
+(defn string?   (value) (eq? (type value) 'string))
+(defn number?   (value) (eq? (type value) 'number))
+
+(defn null? (value) (eq? Nil value))
+
+(defn pair? (value)
+      (and (eq? (type value) 'pair)
+           (not (null? value))))
+
+(defn list? (value)
+      (if (null? value)
+          True
+          (if (pair? value)
+              (list? (cdr value))
+              False)))
+
+(defn atom? (value)
+      (and (not (pair? x))
+           (not (null? x))))

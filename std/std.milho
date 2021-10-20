@@ -1,5 +1,7 @@
 (import std/math)
-(import std/control)
 (import std/utils)
+(import std/predicates)
 (import (prefix-with list: std/list))
 (import (prefix-with string: std/string))
+
+(def list list:list)
