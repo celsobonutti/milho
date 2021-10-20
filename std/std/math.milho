@@ -1,14 +1,14 @@
-(import list)
+(import (prefix-with list: list))
 
 (def = eq?)
 
 (defn -
   ((x) (negate x))
-  ((x +rest) (eval (append '(+ x) (map negate +rest)))))
+  ((x +rest) (eval (list:append '(+ x) (list:map negate +rest)))))
 
 (defn /
   ((x) (invert x))
-  ((x +rest) (eval (append '(* x) (map invert +rest)))))
+  ((x +rest) (eval (list:append '(* x) (list:map invert +rest)))))
 
 (defn denom (x) (numerator (invert x)))
 

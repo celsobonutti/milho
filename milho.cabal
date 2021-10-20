@@ -32,7 +32,6 @@ flag incomplete-error
 library
   exposed-modules:
       Canjica.Boolean
-      Canjica.Environment
       Canjica.EvalApply
       Canjica.Function
       Canjica.Import
@@ -40,11 +39,13 @@ library
       Canjica.List
       Canjica.Macro
       Canjica.Number
+      Canjica.Std
       Canjica.String
       Pipoquinha.BuiltIn
       Pipoquinha.Environment
       Pipoquinha.Error
       Pipoquinha.Function
+      Pipoquinha.ImportStack
       Pipoquinha.Parser
       Pipoquinha.SExp
       Pipoquinha.Type

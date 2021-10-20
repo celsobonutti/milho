@@ -1,7 +1,6 @@
 module Canjica.EvalApply where
 
 import qualified Canjica.Boolean               as Boolean
-import           Canjica.Environment            ( basicEnvironment )
 import qualified Canjica.Function              as Function
 import           Canjica.Function               ( ProceedResult(..)
                                                 , functionArguments
@@ -33,6 +32,7 @@ import           Pipoquinha.Error               ( ExpectedType(..)
                                                 , T(..)
                                                 )
 import qualified Pipoquinha.Error              as Error
+import qualified Pipoquinha.ImportStack        as ImportStack
 import           Pipoquinha.Parser             as Parser
 import           Pipoquinha.SExp         hiding ( T )
 import qualified Pipoquinha.SExp               as SExp
@@ -49,10 +49,7 @@ import           Protolude               hiding ( MonadReader
                                                 , yield
                                                 )
 import           System.Directory               ( makeAbsolute )
-import           System.FilePath                ( takeDirectory )
-import           Text.Megaparsec                ( errorBundlePretty
-                                                , parse
-                                                )
+import           System.FilePath                ( dropFileName )
 
 throwIfError :: CatchCapable m => SExp.Result a -> m a
 throwIfError = \case
@@ -225,6 +222,7 @@ apply [BuiltIn Let, Pair (List exps), body] = do
 
     newScope           <- liftIO . mapM newIORef $ evaluatedArguments
 
+
     environmentRef     <- liftIO . newIORef $ Environment.Table
         { variables = newScope
         , parent    = Just environment
@@ -248,16 +246,18 @@ apply (BuiltIn Fn : rest) = do
     return $ Function function
 
 apply (Function fn : values) = do
-    evaluated      <- batchEval values
-    result         <- throwIfError $ Function.proceed fn evaluated
-    newScope       <- liftIO . mapM newIORef $ functionArguments result
+    evaluated <- batchEval values
+    ProceedResult { functionArguments, functionEnvironment, functionBody } <-
+        throwIfError $ Function.proceed fn evaluated
+
+    newScope       <- liftIO . mapM newIORef $ functionArguments
 
     environmentRef <- liftIO . newIORef $ Environment.Table
         { variables = newScope
-        , parent    = Just $ functionEnvironment result
+        , parent    = Just functionEnvironment
         }
 
-    local @"table" (const environmentRef) (eval $ functionBody result)
+    local @"table" (const environmentRef) (eval functionBody)
 
 apply (Macro macro : values) = do
     ProceedResult { functionArguments, functionEnvironment, functionBody } <-
@@ -265,16 +265,14 @@ apply (Macro macro : values) = do
 
     let expanded = Macro.expand functionArguments functionBody
 
-    local @"table" (const functionEnvironment) (eval expanded)
+    eval expanded
 
 {-  REPL
     Read, Eval, Print, Loop -}
 
-apply [BuiltIn Read] = do
-    input <- liftIO getLine
-    return $ case parse Parser.sExpLine mempty input of
-        Left  e -> Error . ParserError . toS . errorBundlePretty $ e
-        Right a -> a
+apply [BuiltIn Read] = liftIO getLine >>= \case
+    ""    -> apply [BuiltIn Read]
+    input -> return $ parseExpression input
 
 apply (BuiltIn Read : arguments) =
     throw @"runtimeError" $ WrongNumberOfArguments
@@ -555,16 +553,36 @@ apply (BuiltIn ErrorCode : arguments) =
 
 apply [BuiltIn Import, argument] = case Import.getInformation argument of
     Just ImportInformation { prefix, kind } -> do
-        currentPath <- ask @"executionPath"
-        newPath <- liftIO (Import.getNewPath currentPath kind) >>= throwIfError
+        currentFile <- asks @"importStack" ImportStack.current
 
-        fileContents <-
-            (liftIO . Import.safelyReadFile $ newPath) >>= throwIfError
-        functions <- throwIfError (first ParserError $ parseFile fileContents)
-        moduleEnvironment <- liftIO
-            $ loadModule (takeDirectory newPath) functions
-        Environment.merge (fromMaybe "" prefix) moduleEnvironment
-        return (Pair Nil)
+        newFile     <-
+            liftIO (Import.getNewPath (dropFileName currentFile) kind)
+                >>= throwIfError
+
+        hasCycle <- asks @"importStack" (elem newFile)
+
+        if hasCycle
+            then throw @"runtimeError" $ CyclicImport { importing = currentFile
+                                                      , imported  = newFile
+                                                      }
+            else do
+                stack        <- asks @"importStack" (ImportStack.push newFile)
+
+                fileContents <-
+                    (liftIO . Import.safelyReadFile $ newFile) >>= throwIfError
+
+                functions <- throwIfError
+                    (first ParserError $ parseFile fileContents)
+
+                currentTable      <- ask @"table"
+
+                moduleEnvironment <- liftIO
+                    $ loadModule currentTable stack functions
+
+                Environment.merge (fromMaybe "" prefix) moduleEnvironment
+
+                return (Pair Nil)
+
 
     Nothing -> throw @"runtimeError" $ TypeMismatch
         { expected = Multiple
@@ -604,8 +622,14 @@ apply (Number _         : _) = throw @"runtimeError" $ CannotApply Type.Number
 
 apply (e@(Error _)      : _) = return e
 
-loadModule :: FilePath -> [SExp.T] -> IO (Environment.T SExp.T)
-loadModule directory code = do
-    environment <- basicEnvironment directory
+{- Needs to be here, since it uses `eval` -}
+
+loadModule
+    :: Environment.TableRef SExp.T
+    -> ImportStack.T
+    -> [SExp.T]
+    -> IO (Environment.T SExp.T)
+loadModule parent importStack code = do
+    environment <- Environment.make Map.empty importStack (Just parent)
     mapM_ (\instruction -> Environment.runM (eval instruction) environment) code
     return environment

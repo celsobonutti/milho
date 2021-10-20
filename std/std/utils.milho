@@ -1,0 +1,3 @@
+(defn atom? (value) (not (pair? value)))
+
+(defn id (value) value)

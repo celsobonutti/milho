@@ -4,10 +4,10 @@ module Pipoquinha.Environment
   , ReaderCapable
   , ThrowCapable
   , CatchCapable
-  , empty
   , insertValue
   , getValue
   , setValue
+  , make
   , merge
   , TableRef
   , T(..)
@@ -24,6 +24,7 @@ import           Data.IORef
 import qualified Data.Map                      as Map
 import           Data.Map                       ( Map )
 import qualified Pipoquinha.Error              as Error
+import qualified Pipoquinha.ImportStack        as ImportStack
 import           Protolude               hiding ( All
                                                 , MonadReader
                                                 , ask
@@ -53,8 +54,8 @@ mergeVariables toMerge originalTable =
 type TableRef sexp = IORef (Table sexp)
 
 data T sexp = T
-  { table         :: TableRef sexp
-  , executionPath :: FilePath
+  { table       :: TableRef sexp
+  , importStack :: ImportStack.T
   }
   deriving Generic
 
@@ -78,13 +79,13 @@ newtype M sexp a = M {runM :: T sexp -> IO a}
     ) via ReaderIORef (Rename "table" (Field "table" "environment" (MonadReader (ReaderT (T sexp) IO))))
 
   deriving
-    ( HasSource "executionPath" FilePath
-    , HasReader "executionPath" FilePath
-    ) via Field "executionPath" "environment" (MonadReader (ReaderT (T sexp) IO))
+    ( HasSource "importStack" ImportStack.T
+    , HasReader "importStack" ImportStack.T
+    ) via Field "importStack" "environment" (MonadReader (ReaderT (T sexp) IO))
 
 type ReaderCapable sexp m
   = ( HasReader "table" (TableRef sexp) m
-    , HasReader "executionPath" FilePath m
+    , HasReader "importStack" ImportStack.T m
     , MonadIO m
     )
 
@@ -94,11 +95,11 @@ type ThrowCapable m = HasThrow "runtimeError" Error.T m
 
 type CatchCapable m = HasCatch "runtimeError" Error.T m
 
-empty :: FilePath -> IO (T sexp)
-empty executionPath = do
-  let table = Table { variables = Map.empty, parent = Nothing }
-  tableRef <- newIORef table
-  return T { table = tableRef, executionPath }
+make :: Map Text sexp -> ImportStack.T -> Maybe (TableRef sexp) -> IO (T sexp)
+make variablesMap importStack parent = do
+  variables <- mapM newIORef variablesMap
+  table     <- newIORef Table { variables, parent }
+  return T { table, importStack }
 
 insertValue :: StateCapable sexp m => Text -> sexp -> m ()
 insertValue key value = do

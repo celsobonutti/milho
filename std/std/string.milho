@@ -2,10 +2,10 @@
       (size (split "" str)))
 
 (defn join (separator list)
-      (if (null? list)
+      (if (eq? list Nil)
           ""
           (let (head (car list) tail (cdr list))
-               (if (null? tail)
+               (if (eq? tail Nil)
                    head
                    (concat (concat head separator)
                            (join separator tail))))))

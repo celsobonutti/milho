@@ -2,6 +2,7 @@ module Canjica.Import
   ( safelyReadFile
   , getInformation
   , getNewPath
+  , stdPath
   , ImportInformation(..)
   ) where
 
@@ -17,7 +18,11 @@ import           Protolude
 import           System.Directory               ( doesFileExist
                                                 , makeAbsolute
                                                 )
-import           System.FilePath.Posix          ( isRelative )
+import           System.Environment             ( lookupEnv )
+import           System.FilePath.Posix          ( isRelative
+                                                , joinPath
+                                                , normalise
+                                                )
 import           System.IO                      ( FilePath )
 
 data ImportKind
@@ -46,12 +51,16 @@ getFilePath currentPath modulePath = do
     then return . Right $ absolutePath
     else return . Left . FileError $ toS filePath
  where
-  filePath = if isRelative modulePath
-    then currentPath <> "/" <> modulePath
-    else modulePath
+  filePath =
+    if isRelative modulePath then joinPath [currentPath, modulePath] else modulePath
 
 getModuleFile :: FilePath -> FilePath -> IO (SExp.Result FilePath)
 getModuleFile currentPath symbolName = do
+  stdLibPath <- stdPath
+
+  let relativeFile  = normalise $ joinPath [currentPath, symbolName <> ".milho"]
+      globalLibFile = normalise $ joinPath [stdLibPath, symbolName <> ".milho"]
+
   relativeExists <- doesFileExist relativeFile
   if relativeExists
     then return . Right $ relativeFile
@@ -60,9 +69,6 @@ getModuleFile currentPath symbolName = do
       if globalExists
         then return . Right $ globalLibFile
         else return . Left . FileError $ toS symbolName
- where
-  relativeFile  = currentPath <> "/" <> symbolName <> ".milho"
-  globalLibFile = "/opt/milho/" <> symbolName <> ".milho"
 
 getNewPath :: FilePath -> ImportKind -> IO (SExp.Result FilePath)
 getNewPath currentPath (Path   path) = getFilePath currentPath (toS path)
@@ -74,3 +80,6 @@ safelyReadFile path = do
   if doesExist
     then Right <$> readFile (toS path)
     else return . Left . FileError $ toS path
+
+stdPath :: IO FilePath
+stdPath = fromMaybe "/opt/milho" <$> lookupEnv "MILHO_STD_PATH"

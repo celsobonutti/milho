@@ -1,0 +1,46 @@
+(defn null? (value) (eq? '() value))
+
+(defn make-list (size value)
+      (if (< size 1)
+          '()
+          (cons value
+                (make-list (- size 1) value))))
+
+(defn list (+rest)
+      +rest)
+
+(defn map (proc list)
+      (if (null? list)
+          '()
+          (cons (proc (car list))
+                (map proc (cdr list)))))
+
+(defn filter (proc list)
+  (if (null? list)
+      '()
+      (if (proc (car list))
+          (cons (car list)
+                (filter proc (cdr list)))
+          (filter proc (cdr list)))))
+
+(defn foldr (proc base list)
+  (if (null? list)
+      base
+      (proc (car list) (foldr proc base (cdr list)))))
+
+(defn foldl (proc acc list)
+  (if (null? list)
+      acc
+      (foldl proc (proc (car list) acc) (cdr list))))
+
+(defn reverse (list) (foldl cons '() list))
+
+(defn append (list1 list2)
+  (if (null? list1)
+      list2
+      (cons (car list1) (append (cdr list1) list2))))
+
+(defn size (list)
+      (if (null? list)
+          0
+          (+ 1 (size (cdr list)))))

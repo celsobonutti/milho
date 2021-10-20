@@ -45,6 +45,7 @@ data T
   | MisplacedVariadic
   | DividedByZero
   | FileError Text
+  | CyclicImport { imported :: FilePath, importing :: FilePath }
   | UserRaised { errorCode :: Text, message :: Text }
 
     deriving (Eq, Ord)
@@ -100,6 +101,8 @@ instance Show T where
     "Error reading file '"
       <> toS path
       <> "'. Are you sure it exists and you have reading permission?"
+  show CyclicImport { importing, imported } =
+    "Cyclic import found in " <> importing <> " while importing " <> imported
 
 code :: T -> Text
 code (UndefinedVariable _)    = "undefined-variable"
@@ -122,3 +125,4 @@ code MisplacedVariadic        = "misplaced-variadic"
 code DividedByZero            = "divided-by-zero"
 code UserRaised { errorCode } = errorCode
 code (FileError _)            = "file-error"
+code CyclicImport{}           = "cyclic-import"

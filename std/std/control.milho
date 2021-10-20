@@ -1,7 +1,3 @@
-(defn atom? (value) (not (pair? value)))
-
-(defn id (value) value)
-
 (defn not (value)
       (if value
           False
@@ -28,6 +24,3 @@
 (defmacro cond
     (() (raise 'unmatched-cond "cond didn't match any clause. Maybe add a default value?"))
     ((value +rest) (if value... (cond +rest...))))
-
-(defn list (+rest)
-      +rest)

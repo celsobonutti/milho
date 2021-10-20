@@ -3,7 +3,7 @@
 module Main where
 
 import           Canjica.EvalApply
-import           Canjica.Environment (basicEnvironment)
+import qualified Canjica.Std                   as Std
 import           Capability.Error
 import           Capability.Reader
 import           Capability.State
@@ -23,50 +23,28 @@ import           Pipoquinha.SExp                ( T(Error) )
 import           Prelude                        ( IO )
 import           Protolude               hiding ( catch )
 import           System.Directory               ( getCurrentDirectory )
+import           System.FilePath.Posix          ( addTrailingPathSeparator )
 import           System.IO                      ( BufferMode(NoBuffering)
                                                 , hSetBuffering
                                                 , stdout
                                                 )
 import           Text.Megaparsec         hiding ( State )
 
-basicOps :: ByteString
-basicOps = foldr ((<>) . snd) "" $(embedDir "std")
-
 main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering
-  case parseFile . decodeUtf8 $ basicOps of
-    Left  e        -> putStrLn e
-    Right builtIns -> do
-      currentDirectory <- getCurrentDirectory
-      environment      <- basicEnvironment currentDirectory
-      mapM_ (runExpression environment) builtIns
-      args <- getArgs
-      case args of
-        ["repl"] -> do
-          putStrLn ("Welcome to the 🌽 REPL!" :: Text)
-          forever $ Environment.runM run environment
-        [path] -> do
-          content <- liftIO $ readFile path
-          case parseFile content of
-            Left e -> putStrLn e
-            Right instructions ->
-              mapM_ (runExpression environment) instructions
-        _ -> putStrLn ("Invalid option." :: Text)
+  currentDirectory <- getCurrentDirectory <&> addTrailingPathSeparator
+  environment      <- Std.environment currentDirectory
+  getArgs >>= \case
+    [path] -> do
+      content <- liftIO $ readFile path
+      case parseFile content of
+        Left  e            -> putStrLn e
+        Right instructions -> mapM_ (runExpression environment) instructions
+    _ -> putStrLn ("Invalid option." :: Text)
 
 runExpression environment expression =
   Environment.runM (eval expression) environment
-
-run :: (StateCapable SExp.T m, ReaderCapable SExp.T m, CatchCapable m) => m ()
-run = do
-  liftIO $ putStr ("🌽> " :: Text)
-  input <- liftIO getLine
-  case parse Parser.sExpLine mempty input of
-    Left bundle ->
-      print . Error . ParserError . toS . errorBundlePretty $ bundle
-    Right atom -> do
-      result <- catch @"runtimeError" (eval atom) (return . Error)
-      print result
 
 parseFile :: Text -> Either Text [SExp.T]
 parseFile =
