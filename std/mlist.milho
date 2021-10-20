@@ -1,3 +1,5 @@
+(import list)
+
 (defn mcons (car cdr)
   (let
     (mcar car mcdr cdr)

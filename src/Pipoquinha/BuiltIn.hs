@@ -49,11 +49,11 @@ data T
   deriving (Eq, Ord, Enum, Bounded)
 
 instance Show T where
-  show Add                  = "add"
-  show Mul                  = "mul"
+  show Add                  = "+"
+  show Mul                  = "*"
   show Negate               = "negate"
   show Invert               = "invert"
-  show Eql                  = "eq"
+  show Eql                  = "eq?"
   show Defn                 = "defn"
   show Defmacro             = "defmacro"
   show Def                  = "def"
@@ -71,10 +71,10 @@ instance Show T where
   show Car                  = "car"
   show Cdr                  = "cdr"
   show Quote                = "quote"
-  show Gt                   = "gt"
-  show Lt                   = "lt"
+  show Gt                   = ">"
+  show Lt                   = "<"
   show Numerator            = "numerator"
-  show Set                  = "set"
+  show Set                  = "set!"
   show Concat               = "concat"
   show IsString             = "string?"
   show Str                  = "str"

@@ -1,5 +1,0 @@
-(defn compose (f1 f2)
-      (fn (x) (f1 (f2 x))))
-
-(defn -> (+rest)
-      (foldr compose id +rest))

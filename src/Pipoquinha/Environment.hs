@@ -1,4 +1,18 @@
-module Pipoquinha.Environment where
+module Pipoquinha.Environment
+  ( M(..)
+  , StateCapable
+  , ReaderCapable
+  , ThrowCapable
+  , CatchCapable
+  , empty
+  , insertValue
+  , getValue
+  , setValue
+  , merge
+  , TableRef
+  , T(..)
+  , Table(..)
+  ) where
 
 import           Capability.Constraints
 import           Capability.Error
@@ -14,6 +28,7 @@ import           Protolude               hiding ( All
                                                 , MonadReader
                                                 , ask
                                                 , asks
+                                                , empty
                                                 , get
                                                 , gets
                                                 , modify'
@@ -30,6 +45,10 @@ data Table sexp = Table
 insert :: Text -> IORef sexp -> Table sexp -> Table sexp
 insert key value table =
   table { variables = Map.insert key value (variables table) }
+
+mergeVariables :: Map Text (IORef sexp) -> Table sexp -> Table sexp
+mergeVariables toMerge originalTable =
+  originalTable { variables = Map.union toMerge (variables originalTable) }
 
 type TableRef sexp = IORef (Table sexp)
 
@@ -101,3 +120,9 @@ setValue
 setValue key newValue table = do
   value <- getValue key table
   liftIO $ writeIORef value newValue
+
+merge :: StateCapable sexp m => Text -> T sexp -> m ()
+merge prefix moduleEnvironment = do
+  newTable <- liftIO . readIORef $ table moduleEnvironment
+  let newVariables = Map.mapKeys (prefix <>) . variables $ newTable
+  modify' @"tableState" (mergeVariables newVariables)

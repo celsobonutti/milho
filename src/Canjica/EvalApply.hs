@@ -1,6 +1,7 @@
 module Canjica.EvalApply where
 
 import qualified Canjica.Boolean               as Boolean
+import           Canjica.Environment            ( basicEnvironment )
 import qualified Canjica.Function              as Function
 import           Canjica.Function               ( ProceedResult(..)
                                                 , functionArguments
@@ -8,6 +9,7 @@ import           Canjica.Function               ( ProceedResult(..)
                                                 , functionEnvironment
                                                 )
 import qualified Canjica.Import                as Import
+import           Canjica.Import                 ( ImportInformation(..) )
 import qualified Canjica.Let                   as Let
 import qualified Canjica.List                  as List
 import qualified Canjica.Macro                 as Macro
@@ -576,21 +578,19 @@ apply (BuiltIn ErrorCode : arguments) =
 {- Import operations -}
 
 apply [BuiltIn Import, argument] = case Import.getInformation argument of
-    (Just path, prefix) -> do
+    Just ImportInformation { prefix, kind } -> do
         currentPath <- ask @"executionPath"
-        newPath     <- liftIO . makeAbsolute $ (currentPath <> "/" <> toS path)
-        local @"executionPath"
-            (const (takeDirectory newPath))
-            (do
-                fileContents <-
-                    (liftIO . Import.safelyReadFile $ newPath) >>= throwIfError
-                functions <- throwIfError
-                    (first ParserError $ parseFile fileContents)
-                mapM_ (eval . Import.prefixDef prefix) functions
-                return (Pair Nil)
-            )
+        newPath <- liftIO (Import.getNewPath currentPath kind) >>= throwIfError
 
-    (Nothing, _) -> throw @"runtimeError" $ TypeMismatch
+        fileContents <-
+            (liftIO . Import.safelyReadFile $ newPath) >>= throwIfError
+        functions <- throwIfError (first ParserError $ parseFile fileContents)
+        moduleEnvironment <- liftIO
+            $ loadModule (takeDirectory newPath) functions
+        Environment.merge (fromMaybe "" prefix) moduleEnvironment
+        return (Pair Nil)
+
+    Nothing -> throw @"runtimeError" $ TypeMismatch
         { expected = Multiple
                          (Type.String :| [Type.Symbol, Type.ImportPrefixWith])
         , found    = SExp.toType argument
@@ -627,3 +627,9 @@ apply (String _         : _) = throw @"runtimeError" $ CannotApply Type.String
 apply (Number _         : _) = throw @"runtimeError" $ CannotApply Type.Number
 
 apply (e@(Error _)      : _) = return e
+
+loadModule :: FilePath -> [SExp.T] -> IO (Environment.T SExp.T)
+loadModule directory code = do
+    environment <- basicEnvironment directory
+    mapM_ (\instruction -> Environment.runM (eval instruction) environment) code
+    return environment

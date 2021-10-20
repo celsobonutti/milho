@@ -1,3 +1,7 @@
+(import list)
+
+(def = eq?)
+
 (defn -
   ((x) (negate x))
   ((x +rest) (eval (append '(+ x) (map negate +rest)))))

@@ -2,6 +2,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 
 import           Canjica.EvalApply              ( eval )
+import           Canjica.Environment            ( basicEnvironment )
 import           Capability.Error
 import           Capability.Reader
 import           Capability.State
@@ -38,7 +39,7 @@ execute input = do
         Left  e        -> return . Error . ParserError $ e
         Right builtIns -> do
             currentDirectory <- getCurrentDirectory
-            environment      <- Environment.empty currentDirectory
+            environment      <- basicEnvironment currentDirectory
             mapM_ (\atom -> Environment.runM (eval atom) environment) builtIns
             let expression = parseExpression input
 
@@ -98,7 +99,9 @@ prop_If (Fn2 f) x y = monadicIO $ do
 
 generateMap :: [Integer] -> Text
 generateMap numbers =
-    [i|(map add-one (list #{unwords . fmap show $ numbers}))|]
+    [i|(do
+        (import (prefix-with list: list))
+        (list:map add-one (list #{unwords . fmap show $ numbers})))|]
 
 prop_Map numbers = monadicIO $ do
     result <- run . execute $ generateMap numbers
@@ -108,6 +111,7 @@ prop_Map numbers = monadicIO $ do
 
 generateObject :: [Integer] -> Text
 generateObject numbers = [i|(do
+                              (import list)
                               (def inc (inspect add-one))
                               (map inc (list #{unwords . fmap show $ numbers}))
                               (inc 'retrieve))|]

@@ -3,6 +3,7 @@
 module Main where
 
 import           Canjica.EvalApply
+import           Canjica.Environment (basicEnvironment)
 import           Capability.Error
 import           Capability.Reader
 import           Capability.State
@@ -38,7 +39,7 @@ main = do
     Left  e        -> putStrLn e
     Right builtIns -> do
       currentDirectory <- getCurrentDirectory
-      environment      <- Environment.empty currentDirectory
+      environment      <- basicEnvironment currentDirectory
       mapM_ (runExpression environment) builtIns
       args <- getArgs
       case args of

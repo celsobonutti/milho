@@ -1,47 +1,76 @@
 module Canjica.Import
-    ( safelyReadFile
-    , prefixDef
-    , getInformation
-    ) where
+  ( safelyReadFile
+  , getInformation
+  , getNewPath
+  , ImportInformation(..)
+  ) where
 
 import           Control.Exception.Base         ( IOException )
 import           Pipoquinha.BuiltIn             ( T(Def, Defmacro, Defn) )
 import           Pipoquinha.Environment         ( ReaderCapable )
+import qualified Pipoquinha.Environment        as Environment
 import           Pipoquinha.Error               ( T(..) )
 import qualified Pipoquinha.Error              as Error
 import qualified Pipoquinha.SExp               as SExp
 import           Pipoquinha.SExp
 import           Protolude
-import           System.Directory               ( doesFileExist )
+import           System.Directory               ( doesFileExist
+                                                , makeAbsolute
+                                                )
+import           System.FilePath.Posix          ( isRelative )
 import           System.IO                      ( FilePath )
+
+data ImportKind
+  = Path Text
+  | Module Text
+
+data ImportInformation = ImportInformation
+  { prefix :: Maybe Text
+  , kind   :: ImportKind
+  }
+
+getInformation :: SExp.T -> Maybe ImportInformation
+getInformation (String path) =
+  Just $ ImportInformation { kind = Path path, prefix = Nothing }
+getInformation (Symbol moduleName) =
+  Just $ ImportInformation { kind = Module moduleName, prefix = Nothing }
+getInformation (Pair (List [Symbol "prefix-with", Symbol prefix, pathArg])) =
+  ImportInformation (Just prefix) . kind <$> getInformation pathArg
+getInformation _ = Nothing
+
+getFilePath :: FilePath -> FilePath -> IO (SExp.Result FilePath)
+getFilePath currentPath modulePath = do
+  absolutePath <- makeAbsolute filePath
+  fileExists   <- doesFileExist absolutePath
+  if fileExists
+    then return . Right $ absolutePath
+    else return . Left . FileError $ toS filePath
+ where
+  filePath = if isRelative modulePath
+    then currentPath <> "/" <> modulePath
+    else modulePath
+
+getModuleFile :: FilePath -> FilePath -> IO (SExp.Result FilePath)
+getModuleFile currentPath symbolName = do
+  relativeExists <- doesFileExist relativeFile
+  if relativeExists
+    then return . Right $ relativeFile
+    else do
+      globalExists <- doesFileExist globalLibFile
+      if globalExists
+        then return . Right $ globalLibFile
+        else return . Left . FileError $ toS symbolName
+ where
+  relativeFile  = currentPath <> "/" <> symbolName <> ".milho"
+  globalLibFile = "/opt/milho/" <> symbolName <> ".milho"
+
+getNewPath :: FilePath -> ImportKind -> IO (SExp.Result FilePath)
+getNewPath currentPath (Path   path) = getFilePath currentPath (toS path)
+getNewPath currentPath (Module name) = getModuleFile currentPath (toS name)
 
 safelyReadFile :: FilePath -> IO (SExp.Result Text)
 safelyReadFile path = do
-    doesExist <- doesFileExist path
-    if doesExist
-        then Right <$> readFile (toS path)
-        else return . Left . FileError $ toS path
-
-prefixDef :: Maybe Text -> SExp.T -> SExp.T
-prefixDef prefix sexp = case sexp of
-    Pair (List (op : Symbol name : rest)) | op `elem` definitionOps ->
-        Pair . List $ op : Symbol (fromMaybe "" prefix <> name) : rest
-    other -> other
-
-definitionOps :: [SExp.T]
-definitionOps =
-    [ BuiltIn Def
-    , BuiltIn Defn
-    , BuiltIn Defmacro
-    , Symbol "def"
-    , Symbol "defn"
-    , Symbol "defmacro"
-    ]
-
-getInformation :: SExp.T -> (Maybe Text, Maybe Text)
-getInformation (String path) = (Just path, Nothing)
-getInformation (Symbol moduleName) =
-    (Just $ "/" <> moduleName <> ".milho", Nothing)
-getInformation (Pair (List [Symbol "prefix-with", Symbol prefix, pathArg])) =
-    (fst (getInformation pathArg), Just prefix)
-getInformation _ = (Nothing, Nothing)
+  doesExist <- doesFileExist path
+  if doesExist
+    then Right <$> readFile (toS path)
+    else return . Left . FileError $ toS path
