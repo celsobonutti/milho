@@ -43,9 +43,7 @@ data T
   | NotParameterList
   | RepeatedParameter
   | MisplacedVariadic
-  | MalformedCond
   | DividedByZero
-  | FailedGuardClause Text
   | FileError Text
   | UserRaised { errorCode :: Text, message :: Text }
 
@@ -95,9 +93,7 @@ instance Show T where
     = "Non-unique parameter name found. A function cannot have two parameters with the same name."
   show MisplacedVariadic
     = "Misplaced variadic parameter found. The +rest parameter is a special syntax for variadics, and show be placed by the end of the parameter list."
-  show MalformedCond              = "Malformed cond found."
-  show DividedByZero              = "Divided by zero"
-  show (FailedGuardClause clause) = "Failed guard clause: " <> toS clause
+  show DividedByZero = "Divided by zero"
   show UserRaised { errorCode, message } =
     "Error code: " <> toS errorCode <> "\n" <> toS message
   show (FileError path) =
@@ -123,8 +119,6 @@ code MalformedLet             = "malformed-let"
 code NotParameterList         = "not-parameter-list"
 code RepeatedParameter        = "repeated-parameter"
 code MisplacedVariadic        = "misplaced-variadic"
-code MalformedCond            = "malformed-cond"
 code DividedByZero            = "divided-by-zero"
-code (FailedGuardClause _)    = "failed-guard-clause"
 code UserRaised { errorCode } = errorCode
 code (FileError _)            = "file-error"

@@ -180,30 +180,6 @@ apply (BuiltIn If : arguments) = throw @"runtimeError" $ WrongNumberOfArguments
     , functionName  = Just "if"
     }
 
-apply (BuiltIn Cond : arguments) = case arguments of
-    [] -> throw @"runtimeError" $ NotEnoughArguments
-        { expectedCount = 1
-        , foundCount    = length arguments
-        , functionName  = Just "cond"
-        }
-
-    arguments | Just conditions <- mapM validateCondition arguments -> do
-        evaluated <- mapM evaluateCondition conditions
-        case find ((/= Bool False) . fst) evaluated of
-            Nothing                      -> return $ Pair Nil
-            Just (condition, consequent) -> eval consequent
-
-    _ -> throw @"runtimeError" $ MalformedCond
-
-  where
-    validateCondition (Pair (List [condition, consequent])) =
-        Just (condition, consequent)
-    validateCondition _ = Nothing
-
-    evaluateCondition (condition, consequent) = do
-        evaluatedCondition <- eval condition
-        return (evaluatedCondition, consequent)
-
 {-  Variable definition/mutation operations
     def, defn, defmacro, set!, let, guard   -}
 

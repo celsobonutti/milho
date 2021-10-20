@@ -40,7 +40,6 @@ data T
   | Concat
   | Str
   | Split
-  | Cond
   | Raise
   | CallWithErrorHandler
   | ErrorCode
@@ -60,7 +59,6 @@ instance Show T where
   show Fn                   = "fn"
   show Let                  = "let"
   show If                   = "if"
-  show Cond                 = "cond"
   show Read                 = "read"
   show Eval                 = "eval"
   show PrintLn              = "println"

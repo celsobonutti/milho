@@ -25,9 +25,8 @@
         body
         (raise 'failed-guard-clause "A clause failed to match")))
 
-(defmacro my-cond
-    (() Nil)
-    ((value) (if value... Nil))
+(defmacro cond
+    (() (raise 'unmatched-cond "cond didn't match any clause. Maybe add a default value?"))
     ((value +rest) (if value... (cond +rest...))))
 
 (defn list (+rest)
