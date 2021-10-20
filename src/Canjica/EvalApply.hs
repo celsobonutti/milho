@@ -27,6 +27,7 @@ import qualified Pipoquinha.Environment        as Environment
 import           Pipoquinha.Environment         ( CatchCapable
                                                 , ReaderCapable
                                                 , StateCapable
+                                                , ThrowCapable
                                                 )
 import           Pipoquinha.Error               ( ExpectedType(..)
                                                 , T(..)
@@ -51,10 +52,6 @@ import           Protolude               hiding ( MonadReader
 import           System.Directory               ( makeAbsolute )
 import           System.FilePath                ( dropFileName )
 
-throwIfError :: CatchCapable m => SExp.Result a -> m a
-throwIfError = \case
-    Left  error -> throw @"runtimeError" error
-    Right value -> return value
 
 eval
     :: (ReaderCapable SExp.T m, CatchCapable m, StateCapable SExp.T m)
@@ -90,28 +87,21 @@ apply []                        = return $ Pair Nil
 {- Comparison operations -}
 
 apply (BuiltIn Eql : arguments) = batchEval arguments >>= \case
-    [] -> throw @"runtimeError" $ NotEnoughArguments { expectedCount = 1
-                                                     , foundCount    = 0
-                                                     , functionName  = Just "="
-                                                     }
+    []            -> throwNotEnoughArguments 1 arguments "eq?"
 
     (base : rest) -> return (Bool $ (== base) `all` rest)
 
 apply (BuiltIn Gt : arguments) = batchEval arguments >>= \case
-    [] -> throw @"runtimeError" $ NotEnoughArguments { expectedCount = 1
-                                                     , foundCount    = 0
-                                                     , functionName  = Just ">"
-                                                     }
+    []        -> throwNotEnoughArguments 1 arguments ">"
+
     arguments -> do
         isGreater <- throwIfError
             (mapM (uncurry Number.gt) (List.pairs arguments))
         throwIfError (foldM Boolean.and (Bool True) isGreater)
 
 apply (BuiltIn Lt : arguments) = batchEval arguments >>= \case
-    [] -> throw @"runtimeError" $ NotEnoughArguments { expectedCount = 1
-                                                     , foundCount    = 0
-                                                     , functionName  = Just "<"
-                                                     }
+    []        -> throwNotEnoughArguments 1 arguments "<"
+
     arguments -> do
         isGreater <- throwIfError
             (mapM (uncurry Number.lt) (List.pairs arguments))
@@ -131,11 +121,7 @@ apply [BuiltIn Negate, atom] = eval atom >>= \case
                                                 , found    = SExp.toType value
                                                 }
 apply (BuiltIn Negate : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 1
-        , foundCount    = length arguments
-        , functionName  = Just "negate"
-        }
+    throwWrongNoOfArguments 1 arguments "negate"
 
 apply [BuiltIn Invert, atom] = eval atom >>= \case
     Number 0 -> throw @"runtimeError" DividedByZero
@@ -145,11 +131,7 @@ apply [BuiltIn Invert, atom] = eval atom >>= \case
                                                 }
 
 apply (BuiltIn Invert : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 1
-        , foundCount    = length arguments
-        , functionName  = Just "invert"
-        }
+    throwWrongNoOfArguments 1 arguments "invert"
 
 apply [BuiltIn Numerator, atom] = eval atom >>= \case
     Number x -> return . Number $ numerator x % 1
@@ -158,11 +140,7 @@ apply [BuiltIn Numerator, atom] = eval atom >>= \case
                                                 }
 
 apply (BuiltIn Numerator : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 1
-        , foundCount    = length arguments
-        , functionName  = Just "numerator"
-        }
+    throwWrongNoOfArguments 1 arguments "numerator"
 
 {- Control flow operations -}
 
@@ -171,11 +149,7 @@ apply [BuiltIn If, predicate, consequent, alternative] =
         Bool False -> eval alternative
         _          -> eval consequent
 
-apply (BuiltIn If : arguments) = throw @"runtimeError" $ WrongNumberOfArguments
-    { expectedCount = 3
-    , foundCount    = length arguments
-    , functionName  = Just "if"
-    }
+apply (BuiltIn If : arguments) = throwWrongNoOfArguments 3 arguments "if"
 
 {-  Variable definition/mutation operations
     def, defn, defmacro, set!, let, guard   -}
@@ -230,17 +204,12 @@ apply [BuiltIn Let, Pair (List exps), body] = do
 
     local @"table" (const environmentRef) (eval body)
 
-apply (BuiltIn Let : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 2
-        , foundCount    = length arguments
-        , functionName  = Just "let"
-        }
+apply (BuiltIn Let : arguments) = throwWrongNoOfArguments 2 arguments "let"
 
 {-  Function/macro operations
     fn, funcion application and macro expansion -}
 
-apply (BuiltIn Fn : rest) = do
+apply (BuiltIn Fn  : rest     ) = do
     environment <- ask @"table"
     function    <- throwIfError $ Function.make environment Nothing rest
     return $ Function function
@@ -274,21 +243,11 @@ apply [BuiltIn Read] = liftIO getLine >>= \case
     ""    -> apply [BuiltIn Read]
     input -> return $ parseExpression input
 
-apply (BuiltIn Read : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 0
-        , foundCount    = length arguments
-        , functionName  = Just "read"
-        }
+apply (BuiltIn Read : arguments) = throwWrongNoOfArguments 0 arguments "read"
 
-apply [BuiltIn Eval, value] = eval >=> eval $ value
+apply [BuiltIn Eval, value]      = eval >=> eval $ value
 
-apply (BuiltIn Eval : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 1
-        , foundCount    = length arguments
-        , functionName  = Just "eval"
-        }
+apply (BuiltIn Eval : arguments) = throwWrongNoOfArguments 1 arguments "eval"
 
 apply (BuiltIn PrintLn : rest) =
     batchEval rest >>= putStrLn . unwords . map showUnlessString >> return
@@ -304,43 +263,28 @@ apply (BuiltIn Print : rest) =
     showUnlessString (String s) = s
     showUnlessString other      = show other
 
-apply [BuiltIn Loop, procedure] = forever (eval procedure)
+apply [BuiltIn Loop, procedure]   = forever (eval procedure)
 
-apply (BuiltIn Loop : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 1
-        , foundCount    = length arguments
-        , functionName  = Just "loop"
-        }
+apply (BuiltIn Loop : arguments)  = throwWrongNoOfArguments 1 arguments "loop"
 
-apply [BuiltIn Quote, atom] = return atom
+apply [BuiltIn Quote, atom]       = return atom
 
-apply (BuiltIn Quote : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 1
-        , foundCount    = length arguments
-        , functionName  = Just "quote"
-        }
+apply (BuiltIn Quote : arguments) = throwWrongNoOfArguments 1 arguments "quote"
 
 
-apply (BuiltIn Do : rest)      = foldM (const eval) (Pair Nil) rest
+apply (BuiltIn Do    : rest     ) = foldM (const eval) (Pair Nil) rest
 
 {-  List operations
     cons, car, cdr -}
 
-apply [BuiltIn Cons, car, cdr] = do
+apply [BuiltIn Cons, car, cdr]    = do
     car <- eval car
     cdr <- eval cdr
     return $ Pair (car :.: cdr)
 
-apply (BuiltIn Cons : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 2
-        , foundCount    = length arguments
-        , functionName  = Just "cons"
-        }
+apply (BuiltIn Cons : arguments) = throwWrongNoOfArguments 2 arguments "cons"
 
-apply [BuiltIn Car, atom] = eval atom >>= \case
+apply [BuiltIn Car, atom]        = eval atom >>= \case
     Pair Nil       -> return $ Pair Nil
     Pair (x ::: _) -> return x
     Pair (x :.: _) -> return x
@@ -348,14 +292,9 @@ apply [BuiltIn Car, atom] = eval atom >>= \case
                                                 , found    = SExp.toType value
                                                 }
 
-apply (BuiltIn Car : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 1
-        , foundCount    = length arguments
-        , functionName  = Just "car"
-        }
+apply (BuiltIn Car : arguments) = throwWrongNoOfArguments 1 arguments "car"
 
-apply [BuiltIn Cdr, atom] = eval atom >>= \case
+apply [BuiltIn Cdr, atom]       = eval atom >>= \case
     Pair Nil        -> return $ Pair Nil
     Pair (_ ::: xs) -> return $ Pair xs
     Pair (_ :.: x ) -> return x
@@ -363,26 +302,16 @@ apply [BuiltIn Cdr, atom] = eval atom >>= \case
                                                 , found    = SExp.toType value
                                                 }
 
-apply (BuiltIn Cdr : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 1
-        , foundCount    = length arguments
-        , functionName  = Just "cdr"
-        }
+apply (BuiltIn Cdr : arguments) = throwWrongNoOfArguments 1 arguments "cdr"
 
 {-  String operations
     str, concat, split -}
 
-apply [BuiltIn Str, argument] = eval argument >>= \case
+apply [BuiltIn Str, argument]   = eval argument >>= \case
     String s -> return $ String s
     value    -> return . String . show $ value
 
-apply (BuiltIn Str : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 1
-        , foundCount    = length arguments
-        , functionName  = Just "str"
-        }
+apply (BuiltIn Str : arguments) = throwWrongNoOfArguments 1 arguments "str"
 
 apply [BuiltIn Concat, first, second] = do
     fst <- eval first
@@ -390,35 +319,21 @@ apply [BuiltIn Concat, first, second] = do
     throwIfError $ String.concat fst snd
 
 apply (BuiltIn Concat : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 2
-        , foundCount    = length arguments
-        , functionName  = Just "concat"
-        }
+    throwWrongNoOfArguments 2 arguments "concat"
 
 apply [BuiltIn Split, first, second] = do
     on     <- eval first
     string <- eval second
     throwIfError $ String.split on string
 
-apply (BuiltIn Split : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 2
-        , foundCount    = length arguments
-        , functionName  = Just "split"
-        }
+apply (BuiltIn Split : arguments) = throwWrongNoOfArguments 2 arguments "split"
 
 {-  Type operations
     The ones that check if a thing has a type -}
 
 apply [BuiltIn Type, argument] = eval argument <&> Symbol . show . SExp.toType
 
-apply (BuiltIn Type : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 1
-        , foundCount    = length arguments
-        , functionName  = Just "type"
-        }
+apply (BuiltIn Type : arguments) = throwWrongNoOfArguments 1 arguments "type"
 
 {- Error handling
    raise, call-with-error-handler -}
@@ -437,12 +352,7 @@ apply [BuiltIn Raise, code, message] = do
             , found    = SExp.toType invalidCode
             }
 
-apply (BuiltIn Raise : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 2
-        , foundCount    = length arguments
-        , functionName  = Just "raise"
-        }
+apply (BuiltIn Raise : arguments) = throwWrongNoOfArguments 2 arguments "raise"
 
 apply [BuiltIn CallWithErrorHandler, function, handler] =
     catch @"runtimeError" (eval function) (return . Error) >>= \case
@@ -450,11 +360,7 @@ apply [BuiltIn CallWithErrorHandler, function, handler] =
         success         -> return success
 
 apply (BuiltIn CallWithErrorHandler : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 2
-        , foundCount    = length arguments
-        , functionName  = Just "call-with-error-handler"
-        }
+    throwWrongNoOfArguments 2 arguments "call-with-error-handler"
 
 apply [BuiltIn ErrorCode, argument] = eval argument >>= \case
     Error error -> return . Symbol $ Error.code error
@@ -464,11 +370,7 @@ apply [BuiltIn ErrorCode, argument] = eval argument >>= \case
         }
 
 apply (BuiltIn ErrorCode : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 1
-        , foundCount    = length arguments
-        , functionName  = Just "error-code"
-        }
+    throwWrongNoOfArguments 1 arguments "error-code"
 
 {- Import operations -}
 
@@ -512,12 +414,7 @@ apply [BuiltIn Import, argument] = case Import.getInformation argument of
         }
 
 apply (BuiltIn Import : arguments) =
-    throw @"runtimeError" $ WrongNumberOfArguments
-        { expectedCount = 1
-        , foundCount    = length arguments
-        , functionName  = Just "import"
-        }
-
+    throwWrongNoOfArguments 1 arguments "import"
 
 {-  Remaining operations
     evaluating symbols, lists, etc.
@@ -543,6 +440,29 @@ apply (Number _         : _) = throw @"runtimeError" $ CannotApply Type.Number
 
 apply (e@(Error _)      : _) = return e
 
+{- Throw helpers -}
+
+throwIfError :: ThrowCapable m => SExp.Result a -> m a
+throwIfError = \case
+    Left  error -> throw @"runtimeError" error
+    Right value -> return value
+
+throwWrongNoOfArguments
+    :: ThrowCapable m => Int -> [SExp.T] -> Text -> m SExp.T
+throwWrongNoOfArguments expectedCount arguments name =
+    throw @"runtimeError" $ WrongNumberOfArguments
+        { expectedCount
+        , foundCount    = length arguments
+        , functionName  = Just name
+        }
+
+throwNotEnoughArguments
+    :: ThrowCapable m => Int -> [SExp.T] -> Text -> m SExp.T
+throwNotEnoughArguments expectedCount arguments name =
+    throw @"runtimeError" $ NotEnoughArguments { expectedCount
+                                               , foundCount = length arguments
+                                               , functionName = Just name
+                                               }
 {- Needs to be here, since it uses `eval` -}
 
 loadModule

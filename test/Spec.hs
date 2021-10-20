@@ -1,4 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE QuasiQuotes #-}
 
 import           Canjica.EvalApply              ( eval )
@@ -24,10 +23,13 @@ import           Pipoquinha.Parser
 import qualified Pipoquinha.SExp               as SExp
 import           Pipoquinha.SExp
 import           Protolude               hiding ( catch )
-import           Protolude.Partial              ( foldl1 )
+import           Protolude.Partial              ( foldl1
+                                                , foldr1
+                                                )
 import           System.Directory               ( getCurrentDirectory )
 import           System.FilePath.Posix          ( addTrailingPathSeparator )
 import           Test.Hspec
+import           Test.Hspec.QuickCheck
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
 import           Text.Megaparsec         hiding ( State )
@@ -43,10 +45,12 @@ execute input = do
   Environment.runM (catch @"runtimeError" (eval expression) (return . Error))
                    environment
 
+{- Arithmetic tests -}
+
 generateArithmetic :: Arithmetic -> [Integer] -> Text
 generateArithmetic op numbers = [i|(#{op} #{unwords . fmap show $ numbers})|]
 
-prop_Arithmetic op numbers = monadicIO $ do
+propArithmetic op numbers = monadicIO $ do
   result <- run . execute $ generateArithmetic op numbers
 
   assert $ result == expected
@@ -63,12 +67,17 @@ prop_Arithmetic op numbers = monadicIO $ do
     (Div, [number]) -> Number $ 1 % number
     (Div, _) -> Number $ foldl1 (/) . map fromIntegral $ numbers
 
+testArithmetic = describe "Arithmetic" $ do
+  prop "works for every basic arithmetic operation" propArithmetic
+
+{- Variable definition tests -}
+
 generateDefinition :: Integer -> Text
 generateDefinition value = [i|(do
                                 (def my-var #{value})
                                 (eq? #{value} my-var))|]
 
-prop_Definition value = monadicIO $ do
+propDefinition value = monadicIO $ do
   result <- run . execute $ generateDefinition value
 
   assert $ result == Bool True
@@ -77,32 +86,11 @@ generateLet :: Integer -> Integer -> Integer -> Text
 generateLet x y z = [i|(let (x #{x} y #{y} z #{z})
                             (+ x y z))|]
 
-prop_Let x y z = monadicIO $ do
+propLet x y z = monadicIO $ do
   result <- run . execute $ generateLet x y z
 
   assert $ result == expected
   where expected = Number . fromIntegral $ x + y + z
-
-generateIf :: Bool -> Integer -> Integer -> Text
-generateIf condition consequent alternative =
-  [i|(if #{condition} #{consequent} #{alternative})|]
-
-prop_If (Fn2 f) x y = monadicIO $ do
-  result <- run . execute $ generateIf (f x y) x y
-
-  assert $ result == expected
-  where expected = Number . fromIntegral $ if f x y then x else y
-
-generateMap :: [Integer] -> Text
-generateMap numbers = [i|(do
-                            (import std/list)
-                            (map add-one (list #{unwords . fmap show $ numbers})))|]
-
-prop_Map numbers = monadicIO $ do
-  result <- run . execute $ generateMap numbers
-
-  assert $ result == expected
-  where expected = Pair . List $ fmap (Number . fromIntegral . (+ 1)) numbers
 
 generateObject :: [Integer] -> Text
 generateObject numbers = [i|(do
@@ -112,7 +100,7 @@ generateObject numbers = [i|(do
                               (map inc (list #{unwords . fmap show $ numbers}))
                               (inc 'retrieve))|]
 
-prop_Object numbers = monadicIO $ do
+propObject numbers = monadicIO $ do
   result <- run . execute $ generateObject numbers
 
   assert $ result == expected
@@ -126,19 +114,82 @@ generateMlist fstInitial fstFinal snd = [i|(do
                                             (set-mcar! fst #{fstFinal})
                                             (mcar (mcdr snd)))|]
 
-prop_Mlist fstInitial fstFinal snd = monadicIO $ do
+propMlist fstInitial fstFinal snd = monadicIO $ do
   result <- run . execute $ generateMlist fstInitial fstFinal snd
 
   assert $ result == expected
   where expected = Number . fromIntegral $ fstFinal
 
--- Also tests if call-with-error-handler works
+testState = describe "State" $ do
+  prop "works for simple definitions"              propDefinition
+
+  prop "works for let (local state)"               propLet
+
+  prop "works for simple objects (local mutation)" propObject
+
+  prop "works for mutable lists"                   propMlist
+
+{- List operation tests -}
+
+generateMap :: [Integer] -> Text
+generateMap numbers =
+  [i|(list:map add-one '(#{unwords . fmap show $ numbers}))|]
+
+propMap numbers = monadicIO $ do
+  result <- run . execute $ generateMap numbers
+
+  assert $ result == expected
+  where expected = Pair . List $ fmap (Number . fromIntegral . (+ 1)) numbers
+
+generateFoldr :: [Integer] -> Text
+generateFoldr numbers =
+  [i|(list:foldr - 0 '(#{unwords . fmap show $ numbers}))|]
+
+
+propFoldr numbers = monadicIO $ do
+  result <- run . execute $ generateFoldr numbers
+
+  assert $ result == expected
+  where expected = Number . fromIntegral $ foldr (-) 0 numbers
+
+generateFilter :: Integer -> [Integer] -> Text
+generateFilter compared numbers = [i|(list:filter
+                                        (fn (x) (> x #{compared}))
+                                        '(#{unwords . fmap show $ numbers}))|]
+
+propFilter compared numbers = monadicIO $ do
+  result <- run . execute $ generateFilter compared numbers
+
+  assert $ result == expected
+ where
+  expected =
+    Pair . List $ [ Number . fromIntegral $ x | x <- numbers, x > compared ]
+
+testList = describe "List" $ do
+  prop "works for map"    propMap
+
+  prop "works for foldr"  propFoldr
+
+  prop "works for filter" propFilter
+
+{- Control flow tests -}
+
+generateIf :: Bool -> Integer -> Integer -> Text
+generateIf condition consequent alternative =
+  [i|(if #{condition} #{consequent} #{alternative})|]
+
+propIf (Fn2 f) x y = monadicIO $ do
+  result <- run . execute $ generateIf (f x y) x y
+
+  assert $ result == expected
+  where expected = Number . fromIntegral $ if f x y then x else y
+
 generateGuard :: Integer -> Integer -> Text
 generateGuard clauseNumber body = [i|(call-with-error-handler
                                         (guard ((> 20 #{clauseNumber})) #{body})
                                         error-code)|]
 
-prop_Guard clauseNumber body = monadicIO $ do
+propGuard clauseNumber body = monadicIO $ do
   result <- run . execute $ generateGuard clauseNumber body
 
   assert $ result == expected
@@ -151,7 +202,7 @@ generateBoolOp op values = [i|(call-with-error-handler
                                 (#{op} #{unwords . fmap show $ values})
                                 error-code)|]
 
-prop_BoolOp op values = monadicIO $ do
+propBoolOp op values = monadicIO $ do
   result <- run . execute $ generateBoolOp op values
 
   assert $ result == expected
@@ -162,13 +213,22 @@ prop_BoolOp op values = monadicIO $ do
     (And, values ) -> Bool $ and values
     (Or , values ) -> Bool $ or values
 
+testControlFlow = describe "Control flow" $ do
+  prop "works for if"                     propIf
+
+  prop "works for guard"                  propGuard
+
+  prop "works for all boolean operations" propBoolOp
+
+{- Error raise and handling tests -}
+
 generateUserRaise :: Integer -> Integer -> Text
 generateUserRaise first second = [i|(if (> #{first} #{second})
                                  "yayy"
                                  (raise 'invalid-value "Testing raise"))|]
 
 
-prop_UserRaise first second = monadicIO $ do
+propUserRaise first second = monadicIO $ do
   result <- run . execute $ generateUserRaise first second
 
   assert $ result == expected
@@ -178,12 +238,17 @@ prop_UserRaise first second = monadicIO $ do
     | otherwise = Error
     $ UserRaised { errorCode = "invalid-value", message = "Testing raise" }
 
+testError = describe "Error raise and handling" $ do
+  prop "works for user-defined raises" propUserRaise
+
+{- Import testing -}
+
 generateImport :: Integer -> Text
 generateImport value = [i|(do
                             (import "./examples/double.milho")
                             (double #{value}))|]
 
-prop_Import value = monadicIO $ do
+propImport value = monadicIO $ do
   result <- run . execute $ generateImport value
 
   assert $ result == (Number . fromIntegral $ value * 2)
@@ -193,7 +258,7 @@ generateScopedNestedImport value = [i|(do
                                         (import examples/test)
                                         (math:double #{value}))|]
 
-prop_ScopedImport value = monadicIO $ do
+propScopedImport value = monadicIO $ do
   result <- run . execute $ generateScopedNestedImport value
 
   assert $ result == (Number . fromIntegral $ value * 2)
@@ -204,13 +269,20 @@ cyclicImport =
                   \ (import examples/cyclic) \
                   \ error-code)"
 
-testCyclicImport = hspec $ do
-  describe "Cyclic import" $ do
-    it "breaks when trying to do a cyclic import" $ do
-      execute cyclicImport `shouldReturn` Symbol "cyclic-import"
+testImports = describe "Imports" $ do
+  prop "works when using filepath" $ do
+    propImport
 
-return []
+  prop "works when using modules and are scoped" $ do
+    propScopedImport
 
-main = do
-  $quickCheckAll
-  testCyclicImport
+  it "breaks when are cyclic" $ do
+    execute cyclicImport `shouldReturn` Symbol "cyclic-import"
+
+main = hspec $ do
+  testArithmetic
+  testState
+  testList
+  testControlFlow
+  testError
+  testImports
