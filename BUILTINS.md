@@ -23,7 +23,35 @@ This is a simple list of the available built-ins and their syntaxes.
 ## Defining values
 
 ```clojure
-(def variable-name value)
+(def variable-name value) ;; You can define values with def
 
-(defn function-name (arg1 arg2) (+ arg1 arg2))
+(defn function-name (arg1 arg2) (+ arg1 arg2)) ;; You can define functions with `defn`
+
+(defn variadic-funcion (+rest) (eval (cons * +rest))) ;; You can define variadic functions using the special parameter name +rest
+
+(defn multi-body-function
+  ((x) (negate x))
+  ((x +rest) (eval (list:append '(+ x) (list:map negate +rest))))) ;; Functions with multiple bodies can be defined using this syntax
+  
+[- Macros follow the same definition style as functions
+   But have a special syntax for resting: `...`
+   It makes lists spread into their parents during macro expansion, so
+   even though clauses is ((False 2) (True 5)), this will be executed as
+   (and (False 2) (True 5)) -]
+
+(defmacro guard
+    (clauses body)
+    (if (and clauses...)
+        body
+        (raise 'failed-guard-clause "A clause failed to match")))
+        
+[- Anonymous functions can be declared using `fn`
+   Aside from cannot being multi-body, they work just like
+   their names contraparts. -]
+
+(fn (x) (+ x 1))
+
+;; You can define local variables using `let`
+
+(let (x 2 y 5) (- x y))
 ```
