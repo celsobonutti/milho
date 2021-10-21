@@ -26,7 +26,6 @@ data T
   | Cdr
   | Quote
   | Gt
-  | Lt
   | Numerator
   | Set
   | Type
@@ -63,7 +62,6 @@ instance Show T where
   show Cdr                  = "cdr"
   show Quote                = "quote"
   show Gt                   = ">"
-  show Lt                   = "<"
   show Numerator            = "numerator"
   show Set                  = "set!"
   show Type                 = "type"

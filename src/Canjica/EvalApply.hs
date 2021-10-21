@@ -99,14 +99,6 @@ apply (BuiltIn Gt : arguments) = batchEval arguments >>= \case
             (mapM (uncurry Number.gt) (List.pairs arguments))
         throwIfError (foldM Boolean.and (Bool True) isGreater)
 
-apply (BuiltIn Lt : arguments) = batchEval arguments >>= \case
-    []        -> throwNotEnoughArguments 1 arguments "<"
-
-    arguments -> do
-        isGreater <- throwIfError
-            (mapM (uncurry Number.lt) (List.pairs arguments))
-        throwIfError (foldM Boolean.and (Bool True) isGreater)
-
 {- Number operations -}
 
 apply (BuiltIn Add : arguments) =

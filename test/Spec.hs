@@ -48,12 +48,14 @@ execute input = do
                    environment
 
 printRational :: Rational -> Text
-printRational number = show (numerator number) <> "/" <> show (denominator number)
+printRational number =
+  show (numerator number) <> "/" <> show (denominator number)
 
 {- Arithmetic tests -}
 
 generateArithmetic :: Arithmetic -> [Rational] -> Text
-generateArithmetic op numbers = [i|(#{op} #{unwords . fmap printRational $ numbers})|]
+generateArithmetic op numbers =
+  [i|(#{op} #{unwords . fmap printRational $ numbers})|]
 
 propArithmetic op numbers = monadicIO $ do
   result <- run . execute $ generateArithmetic op numbers
@@ -61,16 +63,16 @@ propArithmetic op numbers = monadicIO $ do
   assert $ result == expected
  where
   expected = case (op, numbers) of
-    (Add, _) -> Number $ sum numbers
-    (Mul, _) -> Number $ product numbers
+    (Add, _       )                     -> Number $ sum numbers
+    (Mul, _       )                     -> Number $ product numbers
     (Sub, []) -> Error . NoCompatibleBodies . Just $ "-"
-    (Sub, [number]) -> Number . negate  $ number
-    (Sub, _) -> Number $ foldl1 (-) numbers
+    (Sub, [number])                     -> Number . negate $ number
+    (Sub, _       )                     -> Number $ foldl1 (-) numbers
     (Div, []) -> Error . NoCompatibleBodies . Just $ "/"
-    (Div, [0]) -> Error DividedByZero
+    (Div, [0]     )                     -> Error DividedByZero
     (Div, first : rest) | 0 `elem` rest -> Error DividedByZero
     (Div, [number]) -> Number $ (denominator number % numerator number)
-    (Div, _) -> Number $ foldl1 (/) numbers
+    (Div, _       )                     -> Number $ foldl1 (/) numbers
 
 generatePow :: Rational -> Integer -> Text
 generatePow base power = [i|(call-with-error-handler
@@ -81,15 +83,14 @@ propPow base power = monadicIO $ do
   result <- run . execute $ generatePow base power
 
   assert $ result == expected
-  where
-    expected
-      | base == 0 && power < 0 = Symbol "negative-exponent"
-      | otherwise = Number $ base ^^ power
+ where
+  expected | base == 0 && power < 0 = Symbol "negative-exponent"
+           | otherwise              = Number $ base ^^ power
 
 testArithmetic = describe "Arithmetic" $ do
   prop "works for every basic arithmetic operation" propArithmetic
 
-  prop "works for pow"                              propPow
+  prop "works for pow" propPow
 
 {- Variable definition tests -}
 

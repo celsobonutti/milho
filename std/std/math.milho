@@ -4,6 +4,9 @@
 
 (def = eq?)
 
+(defn < (+rest)
+    (eval (cons > (list:reverse +rest))))
+
 (defn -
   ((x) (negate x))
   ((x +rest) (eval (list:append '(+ x) (list:map negate +rest)))))
