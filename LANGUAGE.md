@@ -2,7 +2,7 @@
 
 ## Primitives
 
-- ### Number
+### Number
 
 ```clojure
 5   ;; Number
@@ -10,28 +10,28 @@
 5/1 ;; 5/1 is the same as 5. Actually, 5 is implemented as 5/1 underneath
 ```
 
-- Boolean
+### Boolean
 
 ```clojure
 True  ;; true
 False ;; false
 ```
 
-- String
+### String
 
 ```clojure
 "Strings are written with double quotes."
 ```
 
-- Identitifer
+### Symbols
 
 ```clojure
-memes         ;; Identifiers are defined like this
+memes         ;; symbols are defined like this
 <oi>          ;; they can start with anything you want, except numbers
 m3M3$_irados  ;; after that, they can hold pretty much anything
 ```
 
-- Pairs 
+### Pairs 
 
 ```clojure
 '()             ;; The empty pair (also called Nil) is created by using empty parenthesis.
@@ -43,7 +43,7 @@ m3M3$_irados  ;; after that, they can hold pretty much anything
 
 ## Defining your things :P
 
-- ### Variables
+### Variables
 
 ```clojure
 (def a 5)                                                                  ;; Variables are declared with the def built-in
@@ -53,7 +53,7 @@ m3M3$_irados  ;; after that, they can hold pretty much anything
                           ;; The odd positions are the identifiers, the even are the values.
 ```
 
-- ### Functions
+### Functions
 
 ```clojure
 (defn       ;; Functions can be declared with the defn built-in
@@ -68,13 +68,13 @@ m3M3$_irados  ;; after that, they can hold pretty much anything
    
 
 (fn (x) (* 2 x)) ;; Anonymous functions are defined like this
-                 ;; They can only have simple, non-variadic bodies.
+                 ;; They can only have simple or variadic bodies.
 ```
 
 - ### Macros
 
 ```clojure
-(defmacro         ;; You can define macros with the defmacro keyword 
+(defmacro         ;; You can define macros with the defmacro builtin
   add
   (+rest)
   (cons + +rest)) 
@@ -83,7 +83,14 @@ m3M3$_irados  ;; after that, they can hold pretty much anything
 ## Dealing with errors
 
 ```clojure
-(if (error? res) ;; Errors can be checked with the is-error builtin
-  (print "Oops, I broke")
-  (print "Oh well, I'm working"))
+(defn my-failing-operation ()
+  (raise 'my-error "Oops, I broke")) ;; Errors can be raised via the raise built-in
+  
+(defn print-error (error)
+  (do (println "Operation failed: ")
+      (println error)))
+
+(call-with-error-handler ;; call-with-error-handler can be used to recover from operations that may fail 
+  (my-failing-operation) ;; the first parameter is the operation that may fail
+  print-error)           ;; The second one is a function that receives the error as a parameter
 ```
