@@ -1,4 +1,6 @@
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE DataKinds #-}
 
 import           Canjica.EvalApply              ( eval )
 import qualified Canjica.Std                   as Std
@@ -45,10 +47,13 @@ execute input = do
   Environment.runM (catch @"runtimeError" (eval expression) (return . Error))
                    environment
 
+printRational :: Rational -> Text
+printRational number = show (numerator number) <> "/" <> show (denominator number)
+
 {- Arithmetic tests -}
 
-generateArithmetic :: Arithmetic -> [Integer] -> Text
-generateArithmetic op numbers = [i|(#{op} #{unwords . fmap show $ numbers})|]
+generateArithmetic :: Arithmetic -> [Rational] -> Text
+generateArithmetic op numbers = [i|(#{op} #{unwords . fmap printRational $ numbers})|]
 
 propArithmetic op numbers = monadicIO $ do
   result <- run . execute $ generateArithmetic op numbers
@@ -56,19 +61,35 @@ propArithmetic op numbers = monadicIO $ do
   assert $ result == expected
  where
   expected = case (op, numbers) of
-    (Add, _) -> Number $ sum (fromIntegral <$> numbers)
-    (Mul, _) -> Number $ product (fromIntegral <$> numbers)
+    (Add, _) -> Number $ sum numbers
+    (Mul, _) -> Number $ product numbers
     (Sub, []) -> Error . NoCompatibleBodies . Just $ "-"
-    (Sub, [number]) -> Number . negate . fromIntegral $ number
-    (Sub, _) -> Number $ foldl1 (-) . map fromIntegral $ numbers
+    (Sub, [number]) -> Number . negate  $ number
+    (Sub, _) -> Number $ foldl1 (-) numbers
     (Div, []) -> Error . NoCompatibleBodies . Just $ "/"
     (Div, [0]) -> Error DividedByZero
     (Div, first : rest) | 0 `elem` rest -> Error DividedByZero
-    (Div, [number]) -> Number $ 1 % number
-    (Div, _) -> Number $ foldl1 (/) . map fromIntegral $ numbers
+    (Div, [number]) -> Number $ (denominator number % numerator number)
+    (Div, _) -> Number $ foldl1 (/) numbers
+
+generatePow :: Rational -> Integer -> Text
+generatePow base power = [i|(call-with-error-handler
+                              (pow #{printRational base} #{power})
+                              (error-code))|]
+
+propPow base power = monadicIO $ do
+  result <- run . execute $ generatePow base power
+
+  assert $ result == expected
+  where
+    expected
+      | base == 0 && power < 0 = Symbol "negative-exponent"
+      | otherwise = Number $ base ^^ power
 
 testArithmetic = describe "Arithmetic" $ do
   prop "works for every basic arithmetic operation" propArithmetic
+
+  prop "works for pow"                              propPow
 
 {- Variable definition tests -}
 

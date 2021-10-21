@@ -1,5 +1,7 @@
 (import (prefix-with list: list))
 
+(defn negative? (x) (< x 0))
+
 (def = eq?)
 
 (defn -
@@ -16,5 +18,9 @@
 
 (defn add-one (x) (+ x 1))
 
-(defn pow (x y)
-      (eval (cons * (list:make-list y x))))
+(defn pow (base exponent)
+      (if (negative? exponent)
+          (if (= 0 base)
+              (raise 'negative-exponent "Negative exponent when base is zero")
+              (invert (pow base (negate exponent))))
+          (eval (cons * (list:make-list exponent base)))))
