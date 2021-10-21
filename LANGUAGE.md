@@ -71,7 +71,7 @@ m3M3$_irados  ;; after that, they can hold pretty much anything
                  ;; They can only have simple or variadic bodies.
 ```
 
-- ### Macros
+### Macros
 
 ```clojure
 (defmacro         ;; You can define macros with the defmacro builtin
