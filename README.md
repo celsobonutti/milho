@@ -15,6 +15,10 @@ You'll need `stack` installed on your computer. Then, simply run:
 - `stack run <path-to-file>` to run the code from a file.
 - `stack test` to run the tests
 
-## The Language
+## Using milho
 
-If you want to know more about the language, check [the language docs](LANGUAGE.md).
+If you want to know more about the language, check [the language docs](LANGUAGE.md).  
+
+For a simple yet comprehensible documentation for the built-in functions, check [the built-in docs](BUILTINS.md).  
+
+Standard library is still a TO-DO, but you can check its code on `std/`
