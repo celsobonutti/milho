@@ -38,14 +38,10 @@ main = do
   getArgs >>= \case
     [path] -> do
       content <- liftIO $ readFile path
-      case parseFile content of
+      case Parser.parseFile content of
         Left  e            -> putStrLn e
         Right instructions -> mapM_ (runExpression environment) instructions
     _ -> putStrLn ("Invalid option." :: Text)
 
 runExpression environment expression =
   Environment.runM (eval expression) environment
-
-parseFile :: Text -> Either Text [SExp.T]
-parseFile =
-  first (toS . errorBundlePretty) . parse Parser.sExpFile mempty . strip

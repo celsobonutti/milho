@@ -44,3 +44,13 @@
       (if (null? list)
           0
           (+ 1 (size (cdr list)))))
+
+(defn flatten (list)
+      (guard (list? list)
+             (cond
+              ((null? list) list)
+              ((list? (car list)) (append
+                                    (flatten (car list))
+                                    (flatten (cdr list))))
+              (else (cons (car list)
+                           (flatten (cdr list)))))))

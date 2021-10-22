@@ -1,7 +1,7 @@
 (defn inspect (f)
     (let (y 0)
          (fn (z)
-             (if (= z 'retrieve)
+             (if (eq? z 'retrieve)
                  y
                  (do
                   (set! y (+ 1 y))

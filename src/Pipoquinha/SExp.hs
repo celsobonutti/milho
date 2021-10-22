@@ -71,7 +71,7 @@ instance Show T where
   show (Function f) = show f
   show (Macro    m) = "m" <> show m
   show (String   s) = "\"" <> toS s <> "\""
-  show (BuiltIn  b) = "BuilIn." <> show b
+  show (BuiltIn  b) = show b
   show (Pair     p) = "(" <> show p <> ")"
   show (Number n)
     | denominator n == 1 = show $ numerator n
