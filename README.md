@@ -20,4 +20,4 @@ If you want to know more about the language, check [the language docs](LANGUAGE.
 
 For a simple yet comprehensible documentation for the built-in functions, check [the built-in docs](BUILTINS.md).  
 
-Standard library is still a TO-DO, but you can check its code on `std/`
+Standard library is still WIP and its docs are yet to be made, but you can check its code on `std/`
