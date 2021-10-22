@@ -56,6 +56,7 @@ type TableRef sexp = IORef (Table sexp)
 data T sexp = T
   { table       :: TableRef sexp
   , importStack :: ImportStack.T
+  , callStack   :: [Text]
   }
   deriving Generic
 
@@ -83,9 +84,15 @@ newtype M sexp a = M {runM :: T sexp -> IO a}
     , HasReader "importStack" ImportStack.T
     ) via Field "importStack" "environment" (MonadReader (ReaderT (T sexp) IO))
 
+  deriving
+    ( HasSource "callStack" [Text]
+    , HasReader "callStack" [Text]
+    ) via Field "callStack" "environment" (MonadReader (ReaderT (T sexp) IO))
+
 type ReaderCapable sexp m
   = ( HasReader "table" (TableRef sexp) m
     , HasReader "importStack" ImportStack.T m
+    , HasReader "callStack" [Text] m
     , MonadIO m
     )
 
