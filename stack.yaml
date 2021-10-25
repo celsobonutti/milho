@@ -48,6 +48,11 @@ extra-deps:
 - hspec-core-2.8.3@sha256:e4c1e08e16842804c470c2b4722e417ed2a556a47a74107401ad42195522f7a7,4992
 - hspec-discover-2.8.3@sha256:b94758b375b5a810ea4c4c187381211c3acc77007f6f795c4e79f206ed6da56a,2025
 - binaryen-0.0.6.0@sha256:8fe849289d04865536b3fa4b059caa9a4587b85bb6235cef5c5f2c3f00e7cb8c,108965
+- git: https://github.com/llvm-hs/llvm-hs
+  commit: 9db657851caf0aa7805b26bcedbd5f445b70f929 # llvm-12, with first terminator fix
+  subdirs:
+    - llvm-hs
+    - llvm-hs-pure
 
 flags:
   binaryen:

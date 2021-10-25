@@ -30,7 +30,8 @@ dependencies:
   - text                >= 1.2.4.1  && < 1.3
   - directory           >= 1.3.6.0  && < 1.4
   - filepath            >= 1.4.2.1  && < 1.5
-  - binaryen            >= 0.0.6.0  && < 0.0.7
+  - llvm-hs             >= 12.0     && < 13.0
+  - llvm-hs-pure        >= 12.0     && < 13.0
 
 default-extensions:
   - NoImplicitPrelude
