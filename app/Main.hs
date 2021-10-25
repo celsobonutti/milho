@@ -11,6 +11,7 @@ import           Data.FileEmbed
 import           Data.IORef
 import qualified Data.Map                      as Map
 import           Data.Text                      ( strip )
+import           Fuba.Compiler
 import           Pipoquinha.Environment         ( CatchCapable
                                                 , ReaderCapable
                                                 , StateCapable
@@ -36,6 +37,7 @@ main = do
   currentDirectory <- getCurrentDirectory <&> addTrailingPathSeparator
   environment      <- Std.environment currentDirectory
   getArgs >>= \case
+    []     -> compile
     [path] -> do
       content <- liftIO $ readFile path
       case Parser.parseFile content of

@@ -53,6 +53,13 @@ packages:
       sha256: 9625353c11b7e231f295cd6070e9c838a49a250488e8ad3324dc5706f33c0fe8
   original:
     hackage: hspec-discover-2.8.3@sha256:b94758b375b5a810ea4c4c187381211c3acc77007f6f795c4e79f206ed6da56a,2025
+- completed:
+    hackage: binaryen-0.0.6.0@sha256:8fe849289d04865536b3fa4b059caa9a4587b85bb6235cef5c5f2c3f00e7cb8c,108965
+    pantry-tree:
+      size: 168000
+      sha256: dbd21545224077c4075b8b7e8f676dcfd3e9d3c8535b00e69987e50d3bb2912b
+  original:
+    hackage: binaryen-0.0.6.0@sha256:8fe849289d04865536b3fa4b059caa9a4587b85bb6235cef5c5f2c3f00e7cb8c,108965
 snapshots:
 - completed:
     size: 586268
