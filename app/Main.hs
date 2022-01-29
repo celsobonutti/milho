@@ -1,5 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 module Main where
 
 import           Canjica.EvalApply
@@ -11,6 +9,7 @@ import           Data.FileEmbed
 import           Data.IORef
 import qualified Data.Map                      as Map
 import           Data.Text                      ( strip )
+import qualified Fuba.Compiler                 as Compiler
 import           Pipoquinha.Environment         ( CatchCapable
                                                 , ReaderCapable
                                                 , StateCapable
@@ -23,7 +22,9 @@ import           Pipoquinha.SExp                ( T(Error) )
 import           Prelude                        ( IO )
 import           Protolude               hiding ( catch )
 import           System.Directory               ( getCurrentDirectory )
-import           System.FilePath.Posix          ( addTrailingPathSeparator )
+import           System.FilePath.Posix          ( addTrailingPathSeparator
+                                                , replaceExtension
+                                                )
 import           System.IO                      ( BufferMode(NoBuffering)
                                                 , hSetBuffering
                                                 , stdout
@@ -36,6 +37,18 @@ main = do
   currentDirectory <- getCurrentDirectory <&> addTrailingPathSeparator
   environment      <- Std.environment currentDirectory
   getArgs >>= \case
+    ["--js-backend", path] -> do
+      content    <- liftIO $ readFile path
+      jsBuiltins <- readFile "js/builtins.js"
+      case Parser.parseFile content of
+        Left e -> putStrLn e
+        Right instructions ->
+          let outputName = replaceExtension path ".js"
+          in  writeFile outputName
+                . unlines
+                . (jsBuiltins :)
+                . fmap Compiler.compile
+                $ instructions
     [path] -> do
       content <- liftIO $ readFile path
       case Parser.parseFile content of

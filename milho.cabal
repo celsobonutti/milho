@@ -41,6 +41,7 @@ library
       Canjica.Number
       Canjica.Std
       Canjica.String
+      Fuba.Compiler
       Pipoquinha.BuiltIn
       Pipoquinha.Environment
       Pipoquinha.Error

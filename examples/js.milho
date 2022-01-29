@@ -1,0 +1,12 @@
+(def x 5)
+(def memes 10)
+
+(defn test (x y) (+ x y))
+
+(print (if (eq? (test 1 2) 3)
+            "memes"
+            "bozzano"))
+
+(print
+  (let (x x y 20)
+       (* x y)))
