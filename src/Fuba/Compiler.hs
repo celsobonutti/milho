@@ -10,21 +10,22 @@ import           Protolude
 
 compile :: SExp.T -> Text
 compile = \case
-    String   txt            -> "\"" <> txt <> "\""
-    Number   (num :% 1    ) -> show num
-    Number   (num :% denom) -> "(" <> show num <> "/" <> show denom <> ")"
-    Bool     True           -> "true"
-    Bool     False          -> "false"
-    Symbol   txt            -> txt
-    Macro    t              -> expand t
-    Function t              -> ""
-    Error    t              -> ""
-    BuiltIn  t              -> ""
-    Pair     (List l )      -> compileApplication l
-    Pair     (_ :.: _)      -> "throw new Error('Cannot apply pair')"
-    Pair     _              -> "return null"
+    String txt            -> "\"" <> txt <> "\""
+    Number (num :% 1    ) -> show num
+    Number (num :% denom) -> "(" <> show num <> "/" <> show denom <> ")"
+    Bool   True           -> "true"
+    Bool   False          -> "false"
+    Symbol txt            -> txt
+    m@(Macro t)           -> compile . expand $ m
+    Function t            -> ""
+    Error    t            -> ""
+    BuiltIn  t            -> ""
+    Pair     (List l )    -> compileApplication l
+    Pair     (_ :.: _)    -> "throw new Error('Cannot apply pair')"
+    Pair     Nil          -> "return null"
 
-expand = undefined
+expand :: SExp.T -> SExp.T
+expand = identity
 
 compileApplication :: [SExp.T] -> Text
 compileApplication = \case
@@ -81,8 +82,9 @@ compileApplication = \case
             <> " }"
     (Symbol "print" : arguments) ->
         "console.log("
-            <> (mconcat . intersperse "," . fmap compile $ arguments)
+            <> (mconcat . intersperse "," . map compile $ arguments)
             <> ")"
+    [Symbol "set!", Symbol name, body] -> name <> " = " <> compile body
     (Symbol function : arguments) ->
         function
             <> "("
@@ -99,6 +101,3 @@ extractPairs (Symbol name : value : rest) =
     bimap (name :) (value :) <$> extractPairs rest
 extractPairs [] = Just ([], [])
 extractPairs _  = Nothing
-
-toDeclaration :: (Text, SExp.T) -> Text
-toDeclaration (name, value) = "let " <> name <> " = " <> compile value

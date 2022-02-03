@@ -29,8 +29,8 @@ import           System.IO                      ( BufferMode(NoBuffering)
                                                 , hSetBuffering
                                                 , stdout
                                                 )
-import           Text.Megaparsec         hiding ( State )
 
+import           Text.Megaparsec         hiding ( State )
 main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering

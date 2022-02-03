@@ -11,17 +11,14 @@ import           Protolude               hiding ( show )
 
 data Pair
   = Nil
-  | P T T
+  | T :.: T
   deriving (Eq, Ord)
 
 infixr 9 :.:
 infixr 8 :::
 
-pattern x ::: xs <- P x (Pair xs) where
-  x ::: xs = P x (Pair xs)
-
-pattern x :.: y <- P x y where
-  x :.: y = P x y
+pattern x ::: xs <- x :.: Pair xs where
+  x ::: xs = x :.: Pair xs
 
 pattern List x <- (pairToList -> Just x) where
   List x = pairFromList x
