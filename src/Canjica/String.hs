@@ -2,6 +2,8 @@ module Canjica.String where
 
 import           Data.Text                      ( length
                                                 , splitOn
+                                                , pack
+                                                , unpack
                                                 )
 import           Pipoquinha.Environment         ( ThrowCapable )
 import qualified Pipoquinha.Error              as Error
@@ -11,7 +13,7 @@ import           Pipoquinha.Error               ( ExpectedType(Simple)
 import qualified Pipoquinha.SExp               as SExp
 import           Pipoquinha.SExp         hiding ( Result )
 import qualified Pipoquinha.Type               as Type
-import           Protolude               hiding ( length )
+import           MilhoPrelude               hiding ( length )
 
 type Result = Either Error.T SExp.T
 
@@ -30,7 +32,7 @@ split x y = ifString x y (Pair . List . fmap String) splitText
   where
     splitText :: Text -> Text -> [Text]
     splitText "" y =
-        let charList :: [Char]     = toS y
+        let charList :: [Char]     = unpack y
             stringList :: [[Char]] = return <$> charList
-        in  toS <$> stringList
+        in  pack <$> stringList
     splitText x y = splitOn x y

@@ -7,8 +7,9 @@ module Pipoquinha.ImportStack
     , push
     ) where
 
-import           Protolude
+import           MilhoPrelude
 import           System.FilePath.Posix          ( FilePath )
+import           Data.List.NonEmpty hiding (singleton)
 
 newtype Stack a = Wrap { unwrap :: NonEmpty a } deriving Foldable
 
@@ -21,4 +22,4 @@ current :: T -> FilePath
 current Wrap { unwrap = head :| _ } = head
 
 push :: FilePath -> T -> T
-push new = Wrap . (new :|) . toList . unwrap
+push new = Wrap . (new :|) . toList . (.unwrap)

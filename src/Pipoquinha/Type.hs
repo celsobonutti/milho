@@ -1,7 +1,7 @@
 module Pipoquinha.Type where
 
 import           GHC.Show                       ( Show(..) )
-import           Protolude               hiding ( show )
+import           MilhoPrelude               hiding ( show )
 
 data T
   = Function

@@ -9,7 +9,8 @@ import           Control.Monad.Combinators.NonEmpty
                                                 ( endBy1 )
 import           Control.Monad.Fail             ( fail )
 import           Data.List.NonEmpty
-import           Data.Text                      ( strip )
+import Data.Bifunctor
+import           Data.Text                      ( strip, pack )
 import           Data.Void
 import qualified Pipoquinha.BuiltIn            as BuiltIn
 import           Pipoquinha.BuiltIn
@@ -17,7 +18,7 @@ import           Pipoquinha.Error               ( T(..) )
 import qualified Pipoquinha.Error              as Error
 import qualified Pipoquinha.SExp               as SExp
 import           Pipoquinha.SExp
-import           Protolude               hiding ( bool
+import           MilhoPrelude               hiding ( bool
                                                 , list
                                                 , many
                                                 , some
@@ -26,6 +27,7 @@ import           Protolude               hiding ( bool
 import           Text.Megaparsec         hiding ( endBy1 )
 import           Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer    as L
+import Data.Ratio ((%))
 
 type Parser = Parsec Void Text
 
@@ -62,7 +64,7 @@ bool =
 
 str :: Parser Text
 str =
-  toS <$> between (char '\"') (char '\"') (many $ satisfy (/= '"')) <?> "string"
+  pack <$> between (char '\"') (char '\"') (many $ satisfy (/= '"')) <?> "string"
 
 pair :: Parser SExp.Pair
 pair = do
@@ -101,7 +103,7 @@ pSymbol :: Parser Text
 pSymbol = do
   firstChar <- satisfy (`notElem` invalidSymbolStart)
   rest      <- many $ satisfy (`notElem` invalidSymbolChars)
-  return (toS (firstChar : rest))
+  return (pack (firstChar : rest))
 
 sExp :: Parser SExp.T
 sExp =
@@ -134,14 +136,14 @@ sExpFile :: Parser [SExp.T]
 sExpFile = optional discardSpace *> (sExp `sepEndBy` discardSpace) <* eof
 
 parseFile :: Text -> Either Text [SExp.T]
-parseFile = first (toS . errorBundlePretty) . parse sExpFile mempty . strip
+parseFile = first (pack . errorBundlePretty) . parse sExpFile mempty . strip
 
 parseFileError :: Either Text [SExp.T] -> Either Error.T [SExp.T]
 parseFileError = first ParserError
 
 parseExpression :: Text -> SExp.T
 parseExpression =
-  fromEither (Error . ParserError . toS . errorBundlePretty)
+  fromEither (Error . ParserError . pack . errorBundlePretty)
     . parse sExpLine mempty
  where
   fromEither f (Left  a) = f a

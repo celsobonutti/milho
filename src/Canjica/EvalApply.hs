@@ -38,19 +38,17 @@ import           Pipoquinha.Parser             as Parser
 import           Pipoquinha.SExp         hiding ( T )
 import qualified Pipoquinha.SExp               as SExp
 import qualified Pipoquinha.Type               as Type
-import qualified Protolude
-import           Protolude               hiding ( MonadReader
-                                                , ask
-                                                , asks
-                                                , catch
-                                                , get
-                                                , gets
-                                                , local
-                                                , put
-                                                , yield
-                                                )
+import qualified MilhoPrelude
+import           MilhoPrelude
 import           System.Directory               ( makeAbsolute )
 import           System.FilePath                ( dropFileName )
+import Data.Text (pack, unpack)
+import Control.Monad (join, foldM, (>=>), forever)
+import Data.Bifunctor (first)
+import Data.Functor ((<&>))
+import Data.Ratio ((%), numerator, denominator)
+import Data.Maybe (fromMaybe)
+import Data.List.NonEmpty (NonEmpty((:|)))
 
 
 eval
@@ -242,14 +240,14 @@ apply [BuiltIn Eval, value]      = eval >=> eval $ value
 apply (BuiltIn Eval : arguments) = throwWrongNoOfArguments 1 arguments "eval"
 
 apply (BuiltIn PrintLn : rest) =
-    batchEval rest >>= putStrLn . unwords . map showUnlessString >> return
+    batchEval rest >>= liftIO . putStrLn . unwords . map showUnlessString >> return
         (Pair Nil)
   where
     showUnlessString (String s) = s
     showUnlessString other      = show other
 
 apply (BuiltIn Print : rest) =
-    batchEval rest >>= putStr . unwords . map showUnlessString >> return
+    batchEval rest >>= liftIO . putStr . unwords . map showUnlessString >> return
         (Pair Nil)
   where
     showUnlessString (String s) = s

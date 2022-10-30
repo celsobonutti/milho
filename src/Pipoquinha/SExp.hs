@@ -7,7 +7,8 @@ import qualified Pipoquinha.Error              as Error
 import           Pipoquinha.Function     hiding ( T )
 import qualified Pipoquinha.Function           as Function
 import qualified Pipoquinha.Type               as Type
-import           Protolude               hiding ( show )
+import           MilhoPrelude hiding (show)
+import Data.Ratio (numerator, denominator)
 
 data Pair
   = Nil
@@ -67,7 +68,7 @@ data T
 instance Show T where
   show (Bool     b) = show b
   show (Symbol   t) = toS $ "'" <> t
-  show (Error    e) = toS $ "Error: " <> show e
+  show (Error    e) = "Error: " <> show e
   show (Function f) = show f
   show (Macro    m) = "m" <> show m
   show (String   s) = "\"" <> toS s <> "\""

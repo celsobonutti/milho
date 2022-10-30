@@ -8,8 +8,10 @@ import           Data.Text                      ( dropEnd
                                                 )
 import           Pipoquinha.Parser              ( parseExpression )
 import           Pipoquinha.SExp         hiding ( T )
+import Data.Maybe (fromMaybe)
+import Data.Text (isSuffixOf)
 import qualified Pipoquinha.SExp               as SExp
-import           Protolude
+import           MilhoPrelude hiding (isSuffixOf)
 
 expand :: Arguments -> SExp.T -> SExp.T
 expand table symbol@(Symbol variable) =
@@ -27,4 +29,4 @@ spreadSymbols table sexp = case sexp of
     element -> [expand table element]
   where
     isSpread name = "..." `isSuffixOf` name
-    varName name = dropEnd 3 name
+    varName = dropEnd 3

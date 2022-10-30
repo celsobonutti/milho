@@ -1,7 +1,7 @@
 module Generators where
 
 import           GHC.Show                       ( Show(..) )
-import           Protolude               hiding ( show )
+import           MilhoPrelude               hiding ( show )
 import           Test.QuickCheck
 
 data Arithmetic

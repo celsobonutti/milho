@@ -5,7 +5,7 @@ import           Data.Map                       ( Map )
 import qualified Data.Map                      as Map
 import           Pipoquinha.Error               ( T(..) )
 import           Pipoquinha.SExp               as SExp
-import           Protolude
+import           MilhoPrelude
 
 makeTable :: [SExp.T] -> SExp.Result Arguments
 makeTable (Symbol s : value : tail) = do

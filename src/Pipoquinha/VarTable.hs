@@ -4,7 +4,7 @@ import           Data.IORef
 import qualified Data.Map                      as Map
 import           Data.Map                       ( Map )
 import qualified Pipoquinha.SExp               as SExp
-import           Protolude
+import           MilhoPrelude
 
 type VarRef = IORef SExp.T
 

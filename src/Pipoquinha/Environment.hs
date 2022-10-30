@@ -9,6 +9,7 @@ module Pipoquinha.Environment
   , setValue
   , make
   , merge
+  , runM
   , TableRef
   , T(..)
   , Table(..)
@@ -25,7 +26,7 @@ import qualified Data.Map                      as Map
 import           Data.Map                       ( Map )
 import qualified Pipoquinha.Error              as Error
 import qualified Pipoquinha.ImportStack        as ImportStack
-import           Protolude               hiding ( All
+import           MilhoPrelude               hiding ( All
                                                 , MonadReader
                                                 , ask
                                                 , asks
@@ -36,6 +37,9 @@ import           Protolude               hiding ( All
                                                 , put
                                                 )
 import           System.IO                      ( FilePath )
+import Data.Text
+import GHC.Generics (Generic)
+import Control.Monad.IO.Class (MonadIO)
 
 data Table sexp = Table
   { variables :: Map Text (IORef sexp)
@@ -45,11 +49,11 @@ data Table sexp = Table
 
 insert :: Text -> IORef sexp -> Table sexp -> Table sexp
 insert key value table =
-  table { variables = Map.insert key value (variables table) }
+  table { variables = Map.insert key value table.variables }
 
 mergeVariables :: Map Text (IORef sexp) -> Table sexp -> Table sexp
 mergeVariables toMerge originalTable =
-  originalTable { variables = Map.union toMerge (variables originalTable) }
+  originalTable { variables = Map.union toMerge originalTable.variables }
 
 type TableRef sexp = IORef (Table sexp)
 
@@ -89,6 +93,9 @@ type ReaderCapable sexp m
     , MonadIO m
     )
 
+runM :: M sexp a -> (T sexp -> IO a)
+runM = (.runM)
+
 type StateCapable sexp m = (HasState "tableState" (Table sexp) m, MonadIO m)
 
 type ThrowCapable m = HasThrow "runtimeError" Error.T m
@@ -124,6 +131,6 @@ setValue key newValue table = do
 
 merge :: StateCapable sexp m => Text -> T sexp -> m ()
 merge prefix moduleEnvironment = do
-  newTable <- liftIO . readIORef $ table moduleEnvironment
-  let newVariables = Map.mapKeys (prefix <>) . variables $ newTable
+  newTable <- liftIO . readIORef $ moduleEnvironment.table
+  let newVariables = Map.mapKeys (prefix <>) newTable.variables
   modify' @"tableState" (mergeVariables newVariables)

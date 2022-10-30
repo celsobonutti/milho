@@ -2,9 +2,13 @@ module Pipoquinha.Function where
 
 import           Data.Map                       ( Map )
 import qualified Data.Map                      as Map
+import Data.List (intercalate)
+import Data.Foldable (toList)
 import           GHC.Show                       ( Show(..) )
 import qualified Pipoquinha.Environment        as Environment
-import           Protolude               hiding ( show )
+import           MilhoPrelude hiding (show)
+import Data.Maybe (fromMaybe)
+import Data.Sequence (Seq(..))
 
 data Simple sexp = SF
   { parameters  :: Seq Text

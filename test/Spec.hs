@@ -24,8 +24,8 @@ import           Pipoquinha.Error               ( T(..) )
 import           Pipoquinha.Parser
 import qualified Pipoquinha.SExp               as SExp
 import           Pipoquinha.SExp
-import           Protolude               hiding ( catch )
-import           Protolude.Partial              ( foldl1
+import           MilhoPrelude               hiding ( catch )
+import           MilhoPrelude.Partial              ( foldl1
                                                 , foldr1
                                                 )
 import           System.Directory               ( getCurrentDirectory )

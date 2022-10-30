@@ -9,7 +9,7 @@ import           Pipoquinha.Error               ( ExpectedType(Simple)
 import qualified Pipoquinha.SExp               as SExp
 import           Pipoquinha.SExp                ( T(Bool, Number) )
 import qualified Pipoquinha.Type               as Type
-import           Protolude               hiding ( throw )
+import           MilhoPrelude               hiding ( throw )
 
 type Result = Either Error.T SExp.T
 

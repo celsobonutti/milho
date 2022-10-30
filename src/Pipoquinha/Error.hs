@@ -3,7 +3,9 @@ module Pipoquinha.Error where
 import           Data.List.NonEmpty
 import           GHC.Show                       ( Show(..) )
 import qualified Pipoquinha.Type               as Type
-import           Protolude               hiding ( show )
+import           MilhoPrelude               hiding ( show )
+import Data.Text
+import Capability.Error (Exception)
 
 data ExpectedType
   = Simple Type.T

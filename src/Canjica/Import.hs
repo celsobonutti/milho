@@ -6,6 +6,7 @@ module Canjica.Import
   , ImportInformation(..)
   ) where
 
+import Data.Text (pack, unpack)
 import           Control.Exception.Base         ( IOException )
 import           Pipoquinha.BuiltIn             ( T(Def, Defmacro, Defn) )
 import           Pipoquinha.Environment         ( ReaderCapable )
@@ -14,7 +15,8 @@ import           Pipoquinha.Error               ( T(..) )
 import qualified Pipoquinha.Error              as Error
 import qualified Pipoquinha.SExp               as SExp
 import           Pipoquinha.SExp
-import           Protolude
+import           MilhoPrelude
+import Data.Maybe (fromMaybe)
 import           System.Directory               ( doesFileExist
                                                 , makeAbsolute
                                                 )
@@ -40,7 +42,7 @@ getInformation (String path) =
 getInformation (Symbol moduleName) =
   Just $ ImportInformation { kind = Module moduleName, prefix = Nothing }
 getInformation (Pair (List [Symbol "prefix-with", Symbol prefix, pathArg])) =
-  ImportInformation (Just prefix) . kind <$> getInformation pathArg
+  ImportInformation (Just prefix) . (.kind) <$> getInformation pathArg
 getInformation _ = Nothing
 
 getFilePath :: FilePath -> FilePath -> IO (SExp.Result FilePath)
@@ -49,7 +51,7 @@ getFilePath currentPath modulePath = do
   fileExists   <- doesFileExist absolutePath
   if fileExists
     then return . Right $ absolutePath
-    else return . Left . FileError $ toS filePath
+    else return . Left . FileError $ pack filePath
  where
   filePath =
     if isRelative modulePath then joinPath [currentPath, modulePath] else modulePath
@@ -68,7 +70,7 @@ getModuleFile currentPath symbolName = do
       globalExists <- doesFileExist globalLibFile
       if globalExists
         then return . Right $ globalLibFile
-        else return . Left . FileError $ toS symbolName
+        else return . Left . FileError $ pack symbolName
 
 getNewPath :: FilePath -> ImportKind -> IO (SExp.Result FilePath)
 getNewPath currentPath (Path   path) = getFilePath currentPath (toS path)
@@ -78,8 +80,8 @@ safelyReadFile :: FilePath -> IO (SExp.Result Text)
 safelyReadFile path = do
   doesExist <- doesFileExist path
   if doesExist
-    then Right <$> readFile (toS path)
-    else return . Left . FileError $ toS path
+    then Right <$> readFile path
+    else return . Left . FileError $ pack path
 
 stdPath :: IO FilePath
 stdPath = fromMaybe "/opt/milho" <$> lookupEnv "MILHO_STD_PATH"

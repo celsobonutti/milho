@@ -13,7 +13,7 @@ import qualified Pipoquinha.ImportStack        as ImportStack
 import           Pipoquinha.Parser              ( parseExpression )
 import qualified Pipoquinha.SExp               as SExp
 import           Pipoquinha.SExp                ( T(BuiltIn) )
-import           Protolude               hiding ( show )
+import           MilhoPrelude               hiding ( show )
 import           System.FilePath.Posix
 
 environment :: FilePath -> IO (Environment.T SExp.T)
@@ -25,7 +25,7 @@ environment executionPath = do
     return environment
   where
     toPair :: BuiltIn.T -> (Text, SExp.T)
-    toPair builtIn = (toS . show $ builtIn, BuiltIn builtIn)
+    toPair builtIn = (pack . show $ builtIn, BuiltIn builtIn)
     builtInMap :: Map Text SExp.T
     builtInMap = Map.fromList $ fmap toPair [minBound ..]
     importExpression :: SExp.T

@@ -1,7 +1,7 @@
 module Pipoquinha.BuiltIn where
 
 import           GHC.Show                       ( Show(..) )
-import           Protolude
+import           MilhoPrelude
 
 data T
   = Add
@@ -36,7 +36,6 @@ data T
   | CallWithErrorHandler
   | ErrorCode
   | Import
-
   deriving (Eq, Ord, Enum, Bounded)
 
 instance Show T where

@@ -9,8 +9,11 @@ import           Capability.Error        hiding ( (:.:) )
 import           Capability.State        hiding ( (:.:) )
 import           Data.Containers.ListUtils      ( nubOrdOn )
 import           Data.IORef
-import           Data.List                      ( partition )
+import           Data.List                      ( partition, find )
 import qualified Data.Map                      as Map
+import Data.Maybe (mapMaybe)
+import Data.Foldable (toList)
+import Data.Map (Map)
 import qualified Data.Sequence                 as Seq
 import           Data.Sequence                  ( Seq((:|>)) )
 import qualified Data.Set                      as Set
@@ -24,7 +27,7 @@ import           Pipoquinha.SExp         hiding ( Result
                                                 , T
                                                 )
 import qualified Pipoquinha.SExp               as SExp
-import           Protolude
+import           MilhoPrelude
 
 {-
 Function creation functions.
@@ -75,7 +78,8 @@ makeMultiArity
   :: Environment -> Maybe Text -> [[SExp.T]] -> SExp.Result Function
 makeMultiArity environment name bodies =
   mapM (make environment Nothing) bodies
-    >>= \case
+    >>=
+      \case
           (_, _, multiArity) | not (null multiArity) ->
             Left NestedMultiArityFunction
 
@@ -92,9 +96,10 @@ makeMultiArity environment name bodies =
 
                 variadic = head variadicList
             in  if isUnique
-                  then Right $ MultiArity MAF { bodies, variadic, name }
+                  then Right $ MultiArity MAF { bodies, variadic, name}
                   else Left OverlappingBodies
-    .   splitFunctions
+
+    . splitFunctions
 
 splitFunctions
   :: [Function]
