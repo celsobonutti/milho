@@ -33,14 +33,6 @@ import qualified Text.Megaparsec.Char.Lexer as L
 
 type Parser = Parsec Void Text
 
-builtInChoice :: [Parser BuiltIn.T]
-builtInChoice = fmap toChoice [minBound ..]
-  where
-    toChoice builtIn = try (builtIn <$ string (show builtIn))
-
-builtIn :: Parser BuiltIn.T
-builtIn = string ".__" *> try (choice builtInChoice) <?> "built-in"
-
 number :: Parser Rational
 number =
     L.signed
@@ -115,7 +107,6 @@ sExp =
         , try (Number <$> number)
         , Symbol <$> pSymbol
         , String <$> str
-        , BuiltIn <$> builtIn
         , try (Pair <$> pair)
         , Pair . List <$> list
         , quotedSExp
