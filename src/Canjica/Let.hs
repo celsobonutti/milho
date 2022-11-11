@@ -1,11 +1,11 @@
 module Canjica.Let where
 
-import           Canjica.Function               ( Arguments )
-import           Data.Map                       ( Map )
-import qualified Data.Map                      as Map
-import           Pipoquinha.Error               ( T(..) )
-import           Pipoquinha.SExp               as SExp
-import           MilhoPrelude
+import Canjica.Function (Arguments)
+import Data.Map (Map)
+import qualified Data.Map as Map
+import MilhoPrelude
+import Pipoquinha.Error (T (..))
+import Pipoquinha.SExp as SExp
 
 makeTable :: [SExp.T] -> SExp.Result Arguments
 makeTable (Symbol s : value : tail) = do
@@ -14,4 +14,4 @@ makeTable (Symbol s : value : tail) = do
         then Right $ Map.insert s value tailMap
         else Left RepeatedParameter
 makeTable [] = Right Map.empty
-makeTable _  = Left MalformedLet
+makeTable _ = Left MalformedLet

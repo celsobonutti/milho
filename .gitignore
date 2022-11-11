@@ -1,4 +1,4 @@
 .stack-work/
-dist-newstyle/
+dist-newstyle
 *~
 **/.DS_Store
