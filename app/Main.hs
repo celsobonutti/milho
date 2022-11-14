@@ -1,27 +1,11 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 module Main where
 
 import Canjica.EvalApply
 import qualified Canjica.Std as Std
-import Capability.Error
-import Capability.Reader
-import Capability.State
-import Data.FileEmbed
 import Data.Functor ((<&>))
-import Data.IORef
-import qualified Data.Map as Map
-import Data.Text (strip)
-import MilhoPrelude hiding (catch)
-import Pipoquinha.Environment (
-    CatchCapable,
-    ReaderCapable,
-    StateCapable,
- )
+import MilhoPrelude
 import qualified Pipoquinha.Environment as Environment
-import Pipoquinha.Error (T (ParserError))
 import qualified Pipoquinha.Parser as Parser
-import Pipoquinha.SExp (T (Error))
 import qualified Pipoquinha.SExp as SExp
 import System.Directory (getCurrentDirectory)
 import System.Environment (getArgs)
@@ -31,8 +15,7 @@ import System.IO (
     hSetBuffering,
     stdout,
  )
-import Text.Megaparsec hiding (State)
-import Prelude (IO)
+import Text.Megaparsec ()
 
 main :: IO ()
 main = do
@@ -47,5 +30,6 @@ main = do
                 Right instructions -> mapM_ (runExpression environment) instructions
         _ -> putStrLn ("Invalid option." :: Text)
 
+runExpression :: Environment.T SExp.T -> SExp.T -> IO SExp.T
 runExpression environment expression =
     Environment.runM (eval expression) environment

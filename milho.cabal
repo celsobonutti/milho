@@ -73,6 +73,7 @@ library
       ScopedTypeVariables
       OverloadedRecordDot
       NoFieldSelectors
+  ghc-options: -W
   build-depends:
       base >=4.16.0 && <5
     , capability >=0.5.0 && <0.6
@@ -112,7 +113,7 @@ executable milho-exe
       ScopedTypeVariables
       OverloadedRecordDot
       NoFieldSelectors
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -W
   build-depends:
       base >=4.16.0 && <5
     , capability >=0.5.0 && <0.6
