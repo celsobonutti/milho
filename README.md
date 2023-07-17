@@ -1,5 +1,20 @@
 # 🌽
 
+---
+
+The cat that named the eval module, Canjica, has passed away.
+
+He's missed by all of us, and left a mark on me that I can not even start explaining.
+
+Canjica, you were the best orange boy I've ever met, and I'll miss and love you forever.
+
+Rest in peace, my baby.
+
+![image](https://github.com/celsobonutti/milho/assets/12688694/cf6a8016-46ef-451c-ba67-881f7cd3895d)
+
+
+---
+
 Milho (corn in portuguese) is a toy dialect of Lisp written as a way to learn more about compilers.
 There are implementations in:
 - [Haskell](https://github.com/celsobonutti/milho)
